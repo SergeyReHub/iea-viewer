@@ -33,7 +33,8 @@ if ! curl -sf "http://127.0.0.1:8010/api/health" >/dev/null; then
   exit 1
 fi
 
-PRESET_COUNT="$(curl -sf "http://127.0.0.1:8010/api/v2/sources/iea/presets" | python -c "import json,sys; print(len(json.load(sys.stdin).get('presets', [])))")"
+PRESET_COUNT="$(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend \
+  python -c "import json, urllib.request; print(len(json.load(urllib.request.urlopen('http://127.0.0.1:8010/api/v2/sources/iea/presets')).get('presets', [])))")"
 echo "Presets available: $PRESET_COUNT"
 if [ "${PRESET_COUNT:-0}" -lt 30 ]; then
   echo "Warning: expected at least 30 presets after seed"
