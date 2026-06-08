@@ -1,0 +1,102 @@
+stages:
+  - build
+  - release
+  - deploy
+  - logs
+
+variables:
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG
+  BACKEND_RELEASE_IMAGE: $CI_REGISTRY_IMAGE/backend:latest
+  FRONTEND_RELEASE_IMAGE: $CI_REGISTRY_IMAGE/frontend:latest
+  MODULE_NAME: "iea-viewer-v2"
+  GIT_CLEAN_FLAGS: -ffdx -e deploy/.env -e deploy/storage/ -e deploy/storage/**
+
+before_script:
+  - echo $CI_JOB_TOKEN | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+build-backend:
+  stage: build
+  tags:
+    - docker50
+  script:
+    - docker build -t $BACKEND_IMAGE -f backend/Dockerfile.prod .
+    - docker push $BACKEND_IMAGE
+
+build-frontend:
+  stage: build
+  tags:
+    - docker50
+  script:
+    - docker build -t $FRONTEND_IMAGE -f frontend/Dockerfile.prod frontend
+    - docker push $FRONTEND_IMAGE
+
+release-images:
+  stage: release
+  tags:
+    - docker50
+  script:
+    - docker pull $BACKEND_IMAGE
+    - docker tag $BACKEND_IMAGE $BACKEND_RELEASE_IMAGE
+    - docker push $BACKEND_RELEASE_IMAGE
+    - docker pull $FRONTEND_IMAGE
+    - docker tag $FRONTEND_IMAGE $FRONTEND_RELEASE_IMAGE
+    - docker push $FRONTEND_RELEASE_IMAGE
+  only:
+    - master
+  needs:
+    - build-backend
+    - build-frontend
+
+deploy-code-job:
+  stage: deploy
+  tags:
+    - docker50
+  script:
+    - echo "=== Server IP ==="
+    - echo "IP сервера (runner) $(hostname -I 2>/dev/null | awk '{print $1}' || echo 'N/A')"
+    - if [ -n "$ENV_FILE" ]; then cp "$ENV_FILE" deploy/.env; fi
+    - if [ ! -f deploy/.env ]; then echo "deploy/.env not found"; exit 1; fi
+    - echo "BACKEND_IMAGE=$BACKEND_RELEASE_IMAGE" >> deploy/.env
+    - echo "FRONTEND_IMAGE=$FRONTEND_RELEASE_IMAGE" >> deploy/.env
+    - chmod +x deploy/stop-v1.sh deploy/deploy.sh
+    - bash deploy/stop-v1.sh
+    - docker compose --env-file deploy/.env -f deploy/docker-compose.yml down --remove-orphans || true
+    - docker compose --env-file deploy/.env -f deploy/docker-compose.yml pull
+    - docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d
+    - echo "=== Waiting for backend ==="
+    - |
+      for attempt in $(seq 1 30); do
+        if curl -sf http://127.0.0.1:8010/api/health >/dev/null; then
+          break
+        fi
+        sleep 2
+      done
+    - curl -sf http://127.0.0.1:8010/api/health
+    - |
+      PRESET_COUNT=$(curl -sf http://127.0.0.1:8010/api/v2/sources/iea/presets | python -c "import json,sys; print(len(json.load(sys.stdin).get('presets', [])))")
+      echo "Presets available: $PRESET_COUNT"
+      if [ "${PRESET_COUNT:-0}" -lt 30 ]; then
+        echo "Warning: expected at least 30 presets"
+        exit 1
+      fi
+    - curl -sf http://127.0.0.1:5180/ >/dev/null
+    - echo "=== iea-viewer-v2 is live on ports 8010 (API) and 5180 (UI) ==="
+  only:
+    - master
+  needs:
+    - release-images
+
+view-logs:
+  stage: logs
+  tags:
+    - docker50
+  script:
+    - echo "=== Server IP ==="
+    - echo "IP сервера (runner) $(hostname -I 2>/dev/null | awk '{print $1}' || echo 'N/A')"
+    - if [ ! -f deploy/.env ]; then echo "deploy/.env not found"; exit 1; fi
+    - docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs --tail=1000
+  only:
+    - master
+  needs:
+    - deploy-code-job

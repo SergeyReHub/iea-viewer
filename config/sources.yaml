@@ -1,0 +1,82 @@
+# Каталог источников данных для iea-viewer-v2
+# connection задаётся через env: {SOURCE_ID}_DB_URL или IEA_DB_URL для iea
+
+sources:
+  - id: iea
+    name: IEA
+    status: active
+    adapter: iea_etl
+    homepage_url: https://www.iea.org/data-and-statistics
+    schema_version: "2026-06"
+    domains:
+      - base
+      - coal
+      - oil
+      - gas
+      - electricity
+    description: >
+      Статистика Международного энергетического агентства (IEA).
+      PostgreSQL-схема из проекта IEA data 2 ETL.
+
+  - id: eurostat
+    name: Eurostat
+    status: planned
+    adapter: eurostat
+    homepage_url: https://ec.europa.eu/eurostat/data/database
+    schema_version: null
+    domains: []
+    description: Статистика Европейского союза (Eurostat Database).
+
+  - id: jodi
+    name: JODI
+    status: planned
+    adapter: jodi
+    homepage_url: http://www.jodidb.org/ReportFolders/reportFolders.aspx?sCS_referer=&sCS_ChosenLang=en
+    schema_version: null
+    domains: []
+    description: Joint Organisations Data Initiative — нефть и нефтепродукты.
+
+  - id: eia
+    name: EIA
+    status: planned
+    adapter: eia
+    homepage_url: https://www.eia.gov/international/data/world
+    schema_version: null
+    domains: []
+    description: U.S. Energy Information Administration — международная статистика.
+
+  - id: opec
+    name: OPEC
+    status: planned
+    adapter: opec
+    homepage_url: https://publications.opec.org/asb/Download
+    schema_version: null
+    domains: []
+    description: Annual Statistical Bulletin — статистика ОПЕК.
+
+  - id: energy_institute
+    name: Energy Institute
+    status: planned
+    adapter: energy_institute
+    homepage_url: https://www.energyinst.org/statistical-review/resources-and-data-downloads
+    schema_version: null
+    domains: []
+    description: Statistical Review of World Energy (бывш. BP Statistical Review).
+
+  - id: trademap
+    name: Trade Map
+    status: planned
+    adapter: trademap
+    homepage_url: https://www.trademap.org/Index.aspx
+    schema_version: null
+    domains: []
+    description: Международная торговая статистика (ITC Trade Map).
+
+  - id: un_comtrade
+    name: UN Comtrade
+    status: planned
+    adapter: un_comtrade
+    homepage_url: https://comtradeplus.un.org/TradeFlow
+    schema_version: null
+    domains: []
+    description: UN Comtrade Plus — потоки международной торговли.

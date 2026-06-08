@@ -1,0 +1,25 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/app ./app
+COPY backend/report_of_preset ./report_of_preset
+COPY scripts/migrate_v1_presets.py ./scripts/migrate_v1_presets.py
+COPY scripts/v1_presets_export.json ./scripts/v1_presets_export.json
+RUN mkdir -p /app/seed/presets/iea \
+    && PYTHONPATH=/app python scripts/migrate_v1_presets.py \
+      --export scripts/v1_presets_export.json \
+      --target /app/seed/presets/iea
+
+COPY backend/docker-entrypoint.prod.sh /docker-entrypoint.prod.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.prod.sh && chmod +x /docker-entrypoint.prod.sh
+
+EXPOSE 8010
+
+ENTRYPOINT ["/docker-entrypoint.prod.sh"]

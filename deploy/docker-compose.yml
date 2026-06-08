@@ -1,0 +1,46 @@
+name: iea-viewer-v2
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE}
+    container_name: iea-viewer-v2-backend
+    environment:
+      IEA_DB_URL: ${IEA_DB_URL}
+      SOURCES_CONFIG: /config/sources.yaml
+      PGHOST: ${PGHOST}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE}
+      PGUSER: ${PGUSER}
+      PGPASSWORD: ${PGPASSWORD}
+      API_PORT: 8010
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      AUDIT_VIEWER_IPS: ${AUDIT_VIEWER_IPS:-}
+      IDENTITY_IP_MAP_EXTRA: ${IDENTITY_IP_MAP_EXTRA:-}
+      FORCE_SEED_PRESETS: ${FORCE_SEED_PRESETS:-false}
+    ports:
+      - "8010:8010"
+    volumes:
+      - iea_viewer_v2_logs:/app/logs
+      - iea_viewer_v2_data:/app/data
+      - ../config:/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    container_name: iea-viewer-frontend
+    ports:
+      - "5180:5180"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  iea_viewer_v2_logs:
+  iea_viewer_v2_data:
