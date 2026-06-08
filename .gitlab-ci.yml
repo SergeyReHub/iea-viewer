@@ -55,7 +55,14 @@ deploy-code-job:
   script:
     - echo "=== Server IP ==="
     - echo "IP сервера (runner) $(hostname -I 2>/dev/null | awk '{print $1}' || echo 'N/A')"
-    - if [ -n "$ENV_FILE" ]; then cp "$ENV_FILE" deploy/.env; fi
+    - |
+      if [ -n "${ENV_FILE:-}" ]; then
+        if [ -f "$ENV_FILE" ]; then
+          cp "$ENV_FILE" deploy/.env
+        else
+          printf '%s\n' "$ENV_FILE" > deploy/.env
+        fi
+      fi
     - if [ ! -f deploy/.env ]; then echo "deploy/.env not found"; exit 1; fi
     - echo "BACKEND_IMAGE=$BACKEND_RELEASE_IMAGE" >> deploy/.env
     - echo "FRONTEND_IMAGE=$FRONTEND_RELEASE_IMAGE" >> deploy/.env
