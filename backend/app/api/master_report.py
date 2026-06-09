@@ -304,33 +304,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
             },
         ],
         "fixed_bbl_t": 7.33,
-    },
-    "oil-nonoecd-crude-bpd": {
-        "domain": "oil",
-        "title": "Добыча нефтяного сырья в стране не-ОЭСР, (тыс. тонн в год)",
-        "fact_table": "oil.fact_oil_world_supply",
-        "frequency_code": "M",
-        "row_dimension": "country_code",
-        "base_filters": {},
-        "mode": "monthly_with_yoy",
-        "period_from": "2020",
-        "latest_period_label": "Х мес. {year}",
-        "pct_label": "% к Х мес. {prev_year}",
-        "convert_bpd_to_kty": True,
-        "annualize_partial_year": True,
         "country_scope": "non_oecd",
-    },
-    "oil-oecd-field-production": {
-        "domain": "oil",
-        "title": "Добыча нефти по месторождениям в стране ОЭСР, (тыс. тонн в год)",
-        "fact_table": "oil.fact_oil_field_production",
-        "frequency_code": "A",
-        "row_dimension": "field_code",
-        "base_filters": {},
-        "mode": "annual_series",
-        "period_from": "2020",
-        "convert_bpd_to_kty": True,
-        "country_scope": "oecd",
     },
     "oil-oecd-crude-field-production": {
         "domain": "oil",
@@ -347,7 +321,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "product_code": ["CRUDEOIL"],
                     "unit_code": ["KBD"],
-                    "source_id": ["43"],
+                    "source_id": ["57"],
                 },
             },
             {
@@ -356,11 +330,12 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "product_code": ["CRUDEOIL"],
                     "unit_code": ["KBD"],
-                    "source_id": ["43"],
+                    "source_id": ["57"],
                 },
             },
         ],
         "fixed_bbl_t": 7.33,
+        "country_scope": "oecd",
     },
     "oil-oecd-crude-import": {
         "domain": "oil",
@@ -450,17 +425,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "round_digits": 1,
         "top_n_rows": 10,
         "drop_empty_top_rows": True,
-        "country_scope": "oecd",
-    },
-    "oil-oecd-crude-import-by-partners": {
-        "domain": "oil",
-        "title": "Импорт нефтяного сырья в страну ОЭСР по направлениям, (тыс. тонн)",
-        "fact_table": "oil.fact_oil_trade",
-        "frequency_code": "A",
-        "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["IMPORTS"]},
-        "mode": "annual_share",
-        "top_n_rows": 10,
+        "annual_share_total_partner": "TOTAL",
         "country_scope": "oecd",
     },
     "oil-oecd-oil-export-by-partners": {
@@ -481,17 +446,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "round_digits": 1,
         "top_n_rows": 10,
         "drop_empty_top_rows": True,
-        "country_scope": "oecd",
-    },
-    "oil-oecd-crude-export-by-partners": {
-        "domain": "oil",
-        "title": "Экспорт нефтяного сырья из страны ОЭСР по направлениям, (тыс. тонн)",
-        "fact_table": "oil.fact_oil_trade",
-        "frequency_code": "A",
-        "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["EXPORTS"]},
-        "mode": "annual_share",
-        "top_n_rows": 10,
+        "annual_share_total_partner": "TOTAL",
         "country_scope": "oecd",
     },
     "oil-oecd-refinery-throughput": {
@@ -838,7 +793,6 @@ OIL_PRODUCT_WHITELISTS: dict[str, list[str]] = {
 }
 
 GUIDE_TEMPLATE_PRODUCT_GROUP: dict[str, str] = {
-    "oil-oecd-field-production": "oil",
     "oil-oecd-oil-import-by-partners": "oil",
     "oil-oecd-oil-export-by-partners": "crude",
     "oil-oecd-refinery-throughput": "oil",
@@ -853,12 +807,9 @@ GUIDE_TEMPLATE_PRODUCT_GROUP: dict[str, str] = {
     "oil-oecd-products-export-by-partners": "products",
     "oil-oecd-crude-production-tonnes": "crude",
     "oil-nonoecd-crude-production-tonnes": "crude",
-    "oil-nonoecd-crude-bpd": "crude",
     "oil-oecd-crude-field-production": "crude",
     "oil-oecd-crude-import": "crude",
     "oil-oecd-crude-export": "crude",
-    "oil-oecd-crude-import-by-partners": "crude",
-    "oil-oecd-crude-export-by-partners": "crude",
 }
 
 TECHNICAL_COLUMNS = {"id", "load_batch_id", "created_at", "updated_at", "time_period_start"}
@@ -1362,6 +1313,58 @@ async def _resolve_country_scope(country_code: str) -> str | None:
     return None
 
 
+async def _country_matches_required_scope(country_code: str, required_scope: str) -> bool:
+    actual_scope = await _resolve_country_scope(country_code)
+    if actual_scope == required_scope:
+        return True
+    if actual_scope is not None:
+        return False
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        is_oecd = await conn.fetchval(
+            """
+            WITH RECURSIVE oecd_tree AS (
+                SELECT country_code::text AS code
+                FROM base.ref_country
+                WHERE country_code::text IN ('TOTOECD', 'OECDTOT')
+                UNION ALL
+                SELECT c.country_code::text AS code
+                FROM base.ref_country c
+                JOIN oecd_tree p ON c.parent_code::text = p.code
+            )
+            SELECT EXISTS(
+                SELECT 1 FROM oecd_tree WHERE UPPER(code) = UPPER($1)
+            )
+            """,
+            country_code,
+        )
+    if required_scope == "oecd":
+        return bool(is_oecd)
+    if required_scope == "non_oecd":
+        return not bool(is_oecd)
+    return True
+
+
+def _guide_report_month_cap(*, current_month: int, latest_available_month: int | None) -> int | None:
+    if latest_available_month is None:
+        return None
+    capped_month = max(1, current_month - 4)
+    return min(latest_available_month, capped_month)
+
+
+def _is_guide_response_empty(columns: list[str], rows: list[dict[str, Any]]) -> bool:
+    if not rows:
+        return True
+    value_columns = [column for column in columns if column != "Показатель"]
+    if not value_columns:
+        return True
+    for row in rows:
+        if any(not _is_zero_like_guide_value(row.get(column)) for column in value_columns):
+            return False
+    return True
+
+
 async def _resolve_row_label_map(fact_table: str, row_dimension: str | None) -> dict[str, str]:
     if not row_dimension:
         return {}
@@ -1425,6 +1428,7 @@ def _build_annual_share_rows(
     drop_empty_top_rows: bool = False,
     year_label: str = "Год-2",
     round_digits: int | None = None,
+    total_partner_label: str | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
     target_year_label = str(target_year)
     period_label = year_label
@@ -1439,12 +1443,22 @@ def _build_annual_share_rows(
         ]
         row_totals[row_label] = sum(period_values) if period_values else None
 
-    total = sum(value for value in row_totals.values() if value is not None)
-    has_any_values = any(value is not None for value in row_totals.values())
+    ranked_source = {
+        label: value
+        for label, value in row_totals.items()
+        if total_partner_label is None or label != total_partner_label
+    }
+    if total_partner_label and total_partner_label in row_totals:
+        total = row_totals.get(total_partner_label)
+        has_any_values = total is not None
+    else:
+        total = sum(value for value in ranked_source.values() if value is not None)
+        has_any_values = any(value is not None for value in ranked_source.values())
+
     output_labels = list(row_labels)
     if top_n_rows and top_n_rows > 0:
         ranked_labels = sorted(
-            row_totals.items(),
+            ranked_source.items(),
             key=lambda item: (
                 item[1] is None,
                 -(item[1] or 0.0),
@@ -1457,6 +1471,8 @@ def _build_annual_share_rows(
 
     rows: list[dict[str, Any]] = []
     for row_label in output_labels:
+        if total_partner_label and row_label == total_partner_label:
+            continue
         value = row_totals.get(row_label)
         if value is None:
             share: float | None = None
@@ -1473,8 +1489,11 @@ def _build_annual_share_rows(
                 "Доля в структуре": rounded_share,
             }
         )
-    total_value = total if has_any_values else None
-    total_share = (100.0 if total else 0.0) if has_any_values else None
+    if total_partner_label and total_partner_label in row_totals:
+        total_value = row_totals.get(total_partner_label)
+    else:
+        total_value = total if has_any_values else None
+    total_share = (100.0 if total_value else 0.0) if has_any_values else None
     if round_digits is not None:
         total_value = _round_guide_number(total_value, round_digits)
         total_share = _round_guide_number(total_share, round_digits)
@@ -1883,6 +1902,7 @@ async def _build_nonoecd_crude_production_tz_rows(
     default_country_filter_key: str | None,
     start_year: int,
     current_year: int,
+    current_month: int,
     latest_label_template: str,
     pct_label_template: str,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -1943,20 +1963,24 @@ async def _build_nonoecd_crude_production_tz_rows(
             if month is not None:
                 available_months_current_year.add(month)
     latest_available_month = max(available_months_current_year) if available_months_current_year else None
+    report_month = _guide_report_month_cap(
+        current_month=current_month,
+        latest_available_month=latest_available_month,
+    )
 
-    if latest_available_month is None:
+    if report_month is None:
         latest_period_label = "нет данных"
         pct_label = "% к нет данных"
     else:
         latest_period_label = latest_label_template.format(
             year=current_year,
             prev_year=current_year - 1,
-            x=latest_available_month,
+            x=report_month,
         )
         pct_label = pct_label_template.format(
             year=current_year,
             prev_year=current_year - 1,
-            x=latest_available_month,
+            x=report_month,
         )
 
     columns = ["Показатель", *annual_periods, latest_period_label, pct_label]
@@ -1976,9 +2000,7 @@ async def _build_nonoecd_crude_production_tz_rows(
             )
         )
 
-    current_months = (
-        range(1, latest_available_month + 1) if latest_available_month is not None else []
-    )
+    current_months = range(1, report_month + 1) if report_month is not None else []
     latest_value = (
         _sum_codes_for_year_months(
             converted_monthly_values,
@@ -1986,7 +2008,7 @@ async def _build_nonoecd_crude_production_tz_rows(
             current_year,
             current_months,
         )
-        if latest_available_month is not None
+        if report_month is not None
         else None
     )
     previous_value = (
@@ -1996,7 +2018,7 @@ async def _build_nonoecd_crude_production_tz_rows(
             current_year - 1,
             current_months,
         )
-        if latest_available_month is not None
+        if report_month is not None
         else None
     )
 
@@ -2092,9 +2114,8 @@ async def _build_oecd_field_production_tz_rows(
 
         product_codes = {str(row["product_key"]) for row in rows}
         conversion_map, crude_by_year, latest_crude = await _load_bbl_t_conversion_map(product_codes)
-        scope = await _resolve_country_scope(country_code) if country_code else None
         fixed_bbl_t = float(template.get("fixed_bbl_t") or 0.0)
-        use_fixed_bbl_t = scope != "oecd" and fixed_bbl_t > 0
+        use_fixed_bbl_t = fixed_bbl_t > 0
 
         row_period_values: dict[str, dict[str, float]] = defaultdict(dict)
         for row in rows:
@@ -2417,8 +2438,7 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
     if payload.country_code and country_filter_key:
         required_scope = template.get("country_scope")
         if required_scope in {"oecd", "non_oecd"}:
-            actual_scope = await _resolve_country_scope(payload.country_code)
-            if actual_scope and actual_scope != required_scope:
+            if not await _country_matches_required_scope(payload.country_code, str(required_scope)):
                 columns = _build_empty_guide_columns(
                     mode=mode,
                     start_year=start_year,
@@ -2468,6 +2488,7 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             default_country_filter_key=country_filter_key,
             start_year=start_year,
             current_year=current_year,
+            current_month=current_month,
             latest_label_template=latest_label_template,
             pct_label_template=pct_label_template,
         )
@@ -2550,6 +2571,16 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
         rows = await conn.fetch(query, *query_params)
 
     label_map = await _resolve_row_label_map(fact_table=fact_table, row_dimension=row_dimension)
+    total_partner_code = (
+        str(template["annual_share_total_partner"])
+        if template.get("annual_share_total_partner")
+        else None
+    )
+    total_partner_label = (
+        label_map.get(total_partner_code, total_partner_code)
+        if total_partner_code
+        else None
+    )
     non_aggregate_country_codes: set[str] | None = None
     if mode == "annual_share" and isinstance(template.get("top_n_rows"), int):
         non_aggregate_country_codes = await _resolve_non_aggregate_country_codes(
@@ -2567,7 +2598,8 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
     for row in rows:
         raw_row_key = str(row["row_key"])
         if non_aggregate_country_codes is not None and raw_row_key not in non_aggregate_country_codes:
-            continue
+            if not (total_partner_code and raw_row_key == total_partner_code):
+                continue
         row_label = label_map.get(raw_row_key, raw_row_key)
         period_key = str(row["period_key"])
         metric_value = float(row["metric_value"] or 0.0)
@@ -2645,6 +2677,7 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             drop_empty_top_rows=bool(template.get("drop_empty_top_rows")),
             year_label=annual_share_year_label,
             round_digits=round_digits,
+            total_partner_label=total_partner_label,
         )
     else:
         columns, table_rows = _build_annual_series_rows(

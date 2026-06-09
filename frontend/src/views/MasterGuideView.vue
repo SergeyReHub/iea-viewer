@@ -52,6 +52,12 @@ function mapGuideDomain(apiDomain: string): GuideDomain {
   return "Нефть";
 }
 const filteredTemplates = computed(() => templates.value.filter((item) => item.domain === selectedDomain.value));
+const visibleTemplates = computed(() => {
+  if (!Object.keys(reportsByTemplateId.value).length) {
+    return filteredTemplates.value;
+  }
+  return filteredTemplates.value.filter((item) => !isGuideTableEmpty(reportsByTemplateId.value[item.id]));
+});
 const countryFilterKeys = ["country_code", "reporter_code"] as const;
 const selectedCountryName = computed(
   () => countryOptions.value.find((item) => item.code === selectedCountryCode.value)?.name ?? selectedCountryCode.value
@@ -65,9 +71,7 @@ const filteredCountryOptions = computed(() => {
     (item) => item.name.toLowerCase().includes(query) || item.code.toLowerCase().includes(query)
   );
 });
-const canExport = computed(() =>
-  filteredTemplates.value.some((template) => Boolean(reportsByTemplateId.value[template.id]))
-);
+const canExport = computed(() => visibleTemplates.value.some((template) => Boolean(reportsByTemplateId.value[template.id])));
 const oneDecimalGuideTableIds = new Set<string>([
   "oil-oecd-crude-production-tonnes",
   "oil-nonoecd-crude-production-tonnes",
@@ -89,6 +93,17 @@ function formatCell(value: unknown, tableId: string): string {
 
 function isEmptyGuideCell(value: unknown): boolean {
   return value === null || value === undefined || value === "";
+}
+
+function isGuideTableEmpty(report: MasterGuideTableResponse | undefined): boolean {
+  if (!report?.rows?.length) {
+    return true;
+  }
+  const valueColumns = report.columns.filter((column) => column !== "Показатель");
+  if (!valueColumns.length) {
+    return true;
+  }
+  return report.rows.every((row) => valueColumns.every((column) => isEmptyGuideCell(row[column])));
 }
 
 function sanitizeFilePart(value: string): string {
@@ -116,7 +131,7 @@ function buildSheetName(base: string, index: number, used: Set<string>): string 
 function exportDomainReportsToExcel(): void {
   const workbook = utils.book_new();
   const usedSheetNames = new Set<string>();
-  const templatesToExport = filteredTemplates.value.filter((template) => reportsByTemplateId.value[template.id]);
+  const templatesToExport = visibleTemplates.value.filter((template) => reportsByTemplateId.value[template.id]);
   if (!templatesToExport.length) {
     return;
   }
@@ -242,10 +257,12 @@ async function buildDomainReports(): Promise<void> {
   for (const template of filteredTemplates.value) {
     try {
       const payload = await buildMasterGuideTable(template.id, selectedCountryCode.value);
-      reportsByTemplateId.value = {
-        ...reportsByTemplateId.value,
-        [template.id]: payload
-      };
+      if (!isGuideTableEmpty(payload)) {
+        reportsByTemplateId.value = {
+          ...reportsByTemplateId.value,
+          [template.id]: payload
+        };
+      }
     } catch (err) {
       errorsByTemplateId.value = {
         ...errorsByTemplateId.value,
@@ -381,7 +398,7 @@ onMounted(async () => {
     <section class="master-preset-card">
       <h4>Шаблоны таблиц — {{ selectedDomain }}</h4>
       <div class="guide-template-group">
-        <div v-for="item in filteredTemplates" :key="item.id" class="guide-template-item guide-template-item-column">
+        <div v-for="item in visibleTemplates" :key="item.id" class="guide-template-item guide-template-item-column">
           <strong>{{ item.title }}</strong>
           <p v-if="errorsByTemplateId[item.id]" class="error">{{ errorsByTemplateId[item.id] }}</p>
           <template v-else-if="reportsByTemplateId[item.id]">

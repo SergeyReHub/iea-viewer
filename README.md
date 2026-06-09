@@ -7,9 +7,17 @@ Phase 4: Eurostat, JODI, EIA, OPEC, Energy Institute, Trade Map, UN Comtrade (п
 
 ## Документация
 
-- [`docs/VIEWER_V2_FEATURES.md`](docs/VIEWER_V2_FEATURES.md) — полная спецификация фич
-- [`docs/03_architecture/multi-source.md`](docs/03_architecture/multi-source.md) — multi-DB архитектура
-- [`docs/api.md`](docs/api.md) — API v2
+Полный указатель и правила ведения: [`docs/README.md`](docs/README.md).
+
+| Документ | Содержание |
+|----------|------------|
+| [VIEWER_V2_FEATURES.md](docs/VIEWER_V2_FEATURES.md) | Спецификация фич |
+| [api.md](docs/api.md) | HTTP API v2 |
+| [multi-source.md](docs/03_architecture/multi-source.md) | Архитектура multi-DB |
+| [iea-etl-mapping.md](docs/07_database/iea-etl-mapping.md) | Схема IEA ↔ viewer |
+| [external-source-output-contract.md](docs/07_database/external-source-output-contract.md) | ТЗ БД для внешних источников |
+| [external-etl-repository-guide.md](docs/07_database/external-etl-repository-guide.md) | README и docs для репозитория ETL |
+| [environments.md](docs/09_delivery/environments.md) | Окружения, CI/CD |
 
 ## Быстрый старт
 
@@ -61,18 +69,20 @@ API_HOST_PORT=8011
 ## Структура
 
 ```
-config/sources.yaml    # каталог источников
-backend/               # FastAPI
-frontend/              # Vue 3
-docs/                  # документация
+config/sources.yaml              # каталог источников
+backend/                         # FastAPI, metadata/descriptions/
+frontend/                        # Vue 3
+docs/                            # документация (см. docs/README.md)
+docs/ТЗ/                         # постановки мастер-справки (.docx)
+deploy/                          # prod docker-compose, CI
+scripts/                         # миграции, утилиты
 ```
 
 ## CI/CD и прод
 
-- [Окружения и выкладка](docs/09_delivery/environments.md)
-- [Cutover v1 → v2](docs/09_delivery/cutover-v1-to-v2.md)
+Prod: **8010** (API), **5180** (UI) на `192.168.245.50`. GitLab runner `docker50`.
 
-Prod: **8010** (API), **5180** (UI) на `192.168.245.50`. Pipeline GitLab, runner `docker50`.
+Подробнее: [окружения](docs/09_delivery/environments.md), [cutover v1→v2](docs/09_delivery/cutover-v1-to-v2.md).
 
 ## Связь с v1
 
