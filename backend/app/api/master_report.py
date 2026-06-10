@@ -141,6 +141,7 @@ LEGACY_SOURCE_IDS: dict[str, str] = {
 
 LEGACY_FLOW_CODES: dict[str, str] = {
     "IMPORT": "IMPORTS",
+    "REFINOBST": "REFININT_OBS",
     "TOTCONS": "GRDEL_INLAND_OBS",
 }
 
@@ -452,14 +453,28 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
     "oil-oecd-refinery-throughput": {
         "domain": "oil",
         "title": "Объём первичной переработки нефти в стране ОЭСР, (тыс. тонн)",
-        "fact_table": "oil.fact_oil_balance",
-        "frequency_code": "M",
-        "row_dimension": None,
-        "base_filters": {"flow_code": ["REFINOUT"]},
-        "mode": "monthly_with_yoy",
+        "fact_table": "oil.fact_oil_crude_supply",
+        "mode": "tz_oecd_crude_production",
         "period_from": "2020",
-        "latest_period_label": "мес.-4 {year}",
-        "pct_label": "% к мес.-4 {prev_year}",
+        "latest_period_label": "{x} мес. {year}",
+        "pct_label": "% к {x} мес. {prev_year}",
+        "row_labels": {
+            "crude": "Сырая нефть",
+        },
+        "row_products": {
+            "crude": ["CRUDEOIL"],
+        },
+        "sources": [
+            {
+                "frequency_code": "M",
+                "period_from": "2020-01",
+                "base_filters": {
+                    "flow_code": ["REFINOBST"],
+                    "product_code": ["CRUDEOIL"],
+                    "unit_code": ["KT"],
+                },
+            },
+        ],
         "country_scope": "oecd",
     },
     "oil-oecd-products-production": {
@@ -795,7 +810,7 @@ OIL_PRODUCT_WHITELISTS: dict[str, list[str]] = {
 GUIDE_TEMPLATE_PRODUCT_GROUP: dict[str, str] = {
     "oil-oecd-oil-import-by-partners": "oil",
     "oil-oecd-oil-export-by-partners": "crude",
-    "oil-oecd-refinery-throughput": "oil",
+    "oil-oecd-refinery-throughput": "crude",
     "oil-oecd-products-production": "products",
     "oil-oecd-products-consumption": "products",
     "oil-oecd-products-consumption-by-sector": "products",
