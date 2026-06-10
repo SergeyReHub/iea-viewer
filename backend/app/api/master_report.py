@@ -336,7 +336,6 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
             },
         ],
         "fixed_bbl_t": 7.33,
-        "country_scope": "oecd",
     },
     "oil-oecd-crude-import": {
         "domain": "oil",
@@ -808,7 +807,7 @@ OIL_PRODUCT_WHITELISTS: dict[str, list[str]] = {
 }
 
 GUIDE_TEMPLATE_PRODUCT_GROUP: dict[str, str] = {
-    "oil-oecd-oil-import-by-partners": "oil",
+    "oil-oecd-oil-import-by-partners": "crude",
     "oil-oecd-oil-export-by-partners": "crude",
     "oil-oecd-refinery-throughput": "crude",
     "oil-oecd-products-production": "products",
@@ -1444,12 +1443,13 @@ def _build_annual_share_rows(
     year_label: str = "Год-2",
     round_digits: int | None = None,
     total_partner_label: str | None = None,
+    total_partner_period_values: dict[str, float] | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
     target_year_label = str(target_year)
     period_label = year_label
     row_totals: dict[str, float | None] = {}
     for row_label in row_labels:
-        if row_label.strip().lower() == "итого":
+        if row_label.strip().lower() == "итого" and row_label != total_partner_label:
             continue
         period_values = [
             metric
@@ -1463,7 +1463,20 @@ def _build_annual_share_rows(
         for label, value in row_totals.items()
         if total_partner_label is None or label != total_partner_label
     }
-    if total_partner_label and total_partner_label in row_totals:
+    total_from_partner: float | None = None
+    if total_partner_period_values:
+        partner_period_values = [
+            metric
+            for period_key, metric in total_partner_period_values.items()
+            if _period_year(period_key) == target_year_label
+        ]
+        if partner_period_values:
+            total_from_partner = float(sum(partner_period_values))
+
+    if total_from_partner is not None:
+        total = total_from_partner
+        has_any_values = True
+    elif total_partner_label and total_partner_label in row_totals:
         total = row_totals.get(total_partner_label)
         has_any_values = total is not None
     else:
@@ -1504,7 +1517,9 @@ def _build_annual_share_rows(
                 "Доля в структуре": rounded_share,
             }
         )
-    if total_partner_label and total_partner_label in row_totals:
+    if total_from_partner is not None:
+        total_value = total_from_partner
+    elif total_partner_label and total_partner_label in row_totals:
         total_value = row_totals.get(total_partner_label)
     else:
         total_value = total if has_any_values else None
@@ -1697,6 +1712,30 @@ def _sum_codes_for_year_months(
     return float(sum(values))
 
 
+GUIDE_TONNE_UNIT_CODES = ("KT", "KB")
+GUIDE_TONNE_UNIT_PRIORITY = {"KT": 0, "KB": 1}
+
+
+def _expand_guide_tonne_unit_filters(filters: dict[str, list[str]]) -> dict[str, list[str]]:
+    expanded = {key: list(values) for key, values in filters.items()}
+    unit_codes = expanded.get("unit_code")
+    if unit_codes == ["KT"]:
+        expanded["unit_code"] = list(GUIDE_TONNE_UNIT_CODES)
+    return expanded
+
+
+def _select_guide_tonne_volume(entries: list[tuple[str, float]]) -> float | None:
+    if not entries:
+        return None
+    by_unit: dict[str, float] = defaultdict(float)
+    for unit_code, value in entries:
+        by_unit[str(unit_code).upper()] += value
+    for preferred_unit in sorted(GUIDE_TONNE_UNIT_PRIORITY, key=GUIDE_TONNE_UNIT_PRIORITY.get):
+        if preferred_unit in by_unit:
+            return by_unit[preferred_unit]
+    return float(sum(by_unit.values()))
+
+
 def _full_month_years(period_map_by_code: dict[str, dict[str, float]], current_year: int) -> set[int]:
     months_by_year: dict[int, set[int]] = defaultdict(set)
     for values in period_map_by_code.values():
@@ -1733,6 +1772,7 @@ async def _fetch_guide_source_period_values(
     if country_code and country_filter_key:
         source_filters[country_filter_key] = [country_code]
 
+    source_filters = _expand_guide_tonne_unit_filters(source_filters)
     source_filters = _normalize_guide_filters(source_filters)
 
     columns_set = await get_table_columns(fact_table)
@@ -1743,20 +1783,28 @@ async def _fetch_guide_source_period_values(
         selected_filter_values=source_filters,
         allowed_filter_columns=allowed_filter_columns,
     )
+    unit_select = (
+        "COALESCE(t.unit_code::text, 'N/A') AS unit_key,"
+        if "unit_code" in columns_set
+        else "'KT'::text AS unit_key,"
+    )
+    unit_group = ", unit_key" if "unit_code" in columns_set else ""
     query = f"""
         SELECT
             COALESCE(t.product_code::text, 'N/A') AS product_key,
+            {unit_select}
             COALESCE(t.time_period::text, 'N/A') AS period_key,
             SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
         FROM {fact_table} t
         {where_sql}
-        GROUP BY product_key, period_key
+        GROUP BY product_key, period_key{unit_group}
     """
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *query_params)
 
     period_map_by_code: dict[str, dict[str, float]] = defaultdict(dict)
+    staged_values: dict[tuple[str, str], list[tuple[str, float]]] = defaultdict(list)
     period_from = source_template.get("period_from")
     from_key = (
         _period_sort_key(str(period_from))
@@ -1768,8 +1816,14 @@ async def _fetch_guide_source_period_values(
         period_key = str(row["period_key"])
         if from_key is not None and _period_sort_key(period_key) < from_key:
             continue
+        unit_key = str(row["unit_key"])
         value = float(row["metric_value"] or 0.0)
-        period_map_by_code[code][period_key] = period_map_by_code[code].get(period_key, 0.0) + value
+        staged_values[(code, period_key)].append((unit_key, value))
+    for (code, period_key), entries in staged_values.items():
+        selected_value = _select_guide_tonne_volume(entries)
+        if selected_value is None:
+            continue
+        period_map_by_code[code][period_key] = selected_value
     return period_map_by_code
 
 
@@ -2054,6 +2108,7 @@ async def _build_oecd_field_production_tz_rows(
     default_country_filter_key: str | None,
     start_year: int,
     current_year: int,
+    current_month: int,
     latest_label_template: str,
     pct_label_template: str,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -2187,20 +2242,24 @@ async def _build_oecd_field_production_tz_rows(
             if month is not None:
                 available_months_current_year.add(month)
     latest_available_month = max(available_months_current_year) if available_months_current_year else None
+    report_month = _guide_report_month_cap(
+        current_month=current_month,
+        latest_available_month=latest_available_month,
+    )
 
-    if latest_available_month is None:
+    if report_month is None:
         latest_period_label = "нет данных"
         pct_label = "% к нет данных"
     else:
         latest_period_label = latest_label_template.format(
             year=current_year,
             prev_year=current_year - 1,
-            x=latest_available_month,
+            x=report_month,
         )
         pct_label = pct_label_template.format(
             year=current_year,
             prev_year=current_year - 1,
-            x=latest_available_month,
+            x=report_month,
         )
     columns = ["Показатель", *year_columns, latest_period_label, pct_label]
 
@@ -2226,12 +2285,10 @@ async def _build_oecd_field_production_tz_rows(
             else:
                 payload[year] = None
 
-        current_months = (
-            range(1, latest_available_month + 1) if latest_available_month is not None else []
-        )
+        current_months = range(1, report_month + 1) if report_month is not None else []
         latest_value = (
             _sum_monthly_values_for_year_months(monthly_row_values, current_year, current_months)
-            if latest_available_month is not None
+            if report_month is not None
             else None
         )
         has_latest = latest_value is not None
@@ -2241,7 +2298,7 @@ async def _build_oecd_field_production_tz_rows(
                 current_year - 1,
                 current_months,
             )
-            if latest_available_month is not None
+            if report_month is not None
             else None
         )
         has_previous = previous_value is not None
@@ -2527,6 +2584,7 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             default_country_filter_key=country_filter_key,
             start_year=start_year,
             current_year=current_year,
+            current_month=current_month,
             latest_label_template=latest_label_template,
             pct_label_template=pct_label_template,
         )
@@ -2544,7 +2602,12 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
 
     columns_set = await get_table_columns(fact_table)
     product_group = GUIDE_TEMPLATE_PRODUCT_GROUP.get(payload.table_id)
-    if "product_code" in columns_set and product_group in OIL_PRODUCT_WHITELISTS:
+    template_product_codes = template.get("base_filters", {}).get("product_code")
+    if (
+        "product_code" in columns_set
+        and product_group in OIL_PRODUCT_WHITELISTS
+        and not template_product_codes
+    ):
         filters["product_code"] = _resolve_product_codes(list(OIL_PRODUCT_WHITELISTS[product_group]))
     filters = _normalize_guide_filters(filters)
     allowed_filter_columns = {spec["key"] for spec in map_filterable_columns(columns_set)}
@@ -2610,11 +2673,16 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
         conversion_map, crude_by_year, latest_crude = await _load_bbl_t_conversion_map(product_codes)
 
     row_period_values: dict[str, dict[str, float]] = defaultdict(dict)
+    total_partner_period_values: dict[str, float] = defaultdict(float)
     for row in rows:
         raw_row_key = str(row["row_key"])
+        if total_partner_code and raw_row_key == total_partner_code:
+            period_key = str(row["period_key"])
+            metric_value = float(row["metric_value"] or 0.0)
+            total_partner_period_values[period_key] += metric_value
+            continue
         if non_aggregate_country_codes is not None and raw_row_key not in non_aggregate_country_codes:
-            if not (total_partner_code and raw_row_key == total_partner_code):
-                continue
+            continue
         row_label = label_map.get(raw_row_key, raw_row_key)
         period_key = str(row["period_key"])
         metric_value = float(row["metric_value"] or 0.0)
@@ -2693,6 +2761,9 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             year_label=annual_share_year_label,
             round_digits=round_digits,
             total_partner_label=total_partner_label,
+            total_partner_period_values=(
+                dict(total_partner_period_values) if total_partner_period_values else None
+            ),
         )
     else:
         columns, table_rows = _build_annual_series_rows(
