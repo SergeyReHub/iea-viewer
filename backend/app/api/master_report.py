@@ -141,6 +141,7 @@ LEGACY_SOURCE_IDS: dict[str, str] = {
 
 LEGACY_FLOW_CODES: dict[str, str] = {
     "IMPORT": "IMPORTS",
+    "FINCONS": "TFC_T",
     "REFINOBST": "REFININT_OBS",
     "TOTCONS": "GRDEL_INLAND_OBS",
 }
@@ -493,13 +494,37 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "domain": "oil",
         "title": "Потребление нефтепродуктов в стране ОЭСР, (тыс. тонн)",
         "fact_table": "oil.fact_oil_balance",
-        "frequency_code": "A",
-        "row_dimension": "product_code",
-        "base_filters": {"flow_code": ["FINCONS"]},
-        "mode": "annual_series",
+        "mode": "tz_oecd_products_consumption",
         "period_from": "2020",
-        "latest_period_label": "мес.-4 {year}",
-        "pct_label": "% к мес.-4 {prev_year}",
+        "latest_period_label": "{x} мес. {year}",
+        "pct_label": "% к {x} мес. {prev_year}",
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["TOTPRODS"]},
+            {"label": "СУГ", "products": ["LPG"]},
+            {"label": "Автобензин", "products": ["MOTORGAS"]},
+            {"label": "Авиакеросин", "products": ["JETKERO"]},
+            {"label": "Дизтопливо", "products": ["GASDIES"]},
+            {"label": "Мазут", "products": ["RESFUEL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["FINCONS"],
+                    "unit_code": ["KT"],
+                },
+            },
+            {
+                "frequency_code": "M",
+                "period_from": "2025-01",
+                "base_filters": {
+                    "flow_code": ["FINCONS"],
+                    "unit_code": ["KT"],
+                },
+            },
+        ],
+        "prefer_qualifier": True,
         "country_scope": "oecd",
     },
     "oil-oecd-products-consumption-by-sector": {
@@ -1617,6 +1642,7 @@ def _build_empty_guide_columns(
         "tz_oecd_crude_production",
         "tz_nonoecd_crude_production",
         "tz_oecd_field_production",
+        "tz_oecd_products_consumption",
     }:
         annual_periods = [str(year) for year in range(start_year, current_year)]
         return ["Показатель", *annual_periods, latest_period_label, pct_label]
@@ -1714,6 +1740,7 @@ def _sum_codes_for_year_months(
 
 GUIDE_TONNE_UNIT_CODES = ("KT", "KB")
 GUIDE_TONNE_UNIT_PRIORITY = {"KT": 0, "KB": 1}
+GUIDE_QUALIFIER_PRIORITY = {"A": 0, "I": 1}
 
 
 def _expand_guide_tonne_unit_filters(filters: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -1736,6 +1763,32 @@ def _select_guide_tonne_volume(entries: list[tuple[str, float]]) -> float | None
     return float(sum(by_unit.values()))
 
 
+def _finalize_guide_period_map(
+  staged_values: dict[tuple[str, str], list[tuple[str, str, float]]],
+  *,
+  prefer_qualifier: bool,
+) -> dict[str, dict[str, float]]:
+    period_map_by_code: dict[str, dict[str, float]] = defaultdict(dict)
+    for (code, period_key), entries in staged_values.items():
+        if prefer_qualifier:
+            by_qualifier: dict[str, list[tuple[str, float]]] = defaultdict(list)
+            for qualifier_key, unit_key, value in entries:
+                by_qualifier[str(qualifier_key).upper()].append((unit_key, value))
+            selected_qualifier = min(
+                by_qualifier.keys(),
+                key=lambda item: GUIDE_QUALIFIER_PRIORITY.get(item, 99),
+            )
+            selected_value = _select_guide_tonne_volume(by_qualifier[selected_qualifier])
+        else:
+            selected_value = _select_guide_tonne_volume(
+                [(unit_key, value) for _, unit_key, value in entries]
+            )
+        if selected_value is None:
+            continue
+        period_map_by_code[code][period_key] = selected_value
+    return period_map_by_code
+
+
 def _full_month_years(period_map_by_code: dict[str, dict[str, float]], current_year: int) -> set[int]:
     months_by_year: dict[int, set[int]] = defaultdict(set)
     for values in period_map_by_code.values():
@@ -1756,6 +1809,7 @@ async def _fetch_guide_source_period_values(
     country_code: str,
     default_fact_table: str,
     default_country_filter_key: str | None,
+    prefer_qualifier: bool = False,
 ) -> dict[str, dict[str, float]]:
     fact_table = str(source_template.get("fact_table") or default_fact_table)
     source_filters = {
@@ -1788,23 +1842,29 @@ async def _fetch_guide_source_period_values(
         if "unit_code" in columns_set
         else "'KT'::text AS unit_key,"
     )
+    qualifier_select = (
+        "COALESCE(t.qualifier::text, 'N/A') AS qualifier_key,"
+        if prefer_qualifier and "qualifier" in columns_set
+        else "'A'::text AS qualifier_key,"
+    )
     unit_group = ", unit_key" if "unit_code" in columns_set else ""
+    qualifier_group = ", qualifier_key" if prefer_qualifier and "qualifier" in columns_set else ""
     query = f"""
         SELECT
             COALESCE(t.product_code::text, 'N/A') AS product_key,
             {unit_select}
+            {qualifier_select}
             COALESCE(t.time_period::text, 'N/A') AS period_key,
             SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
         FROM {fact_table} t
         {where_sql}
-        GROUP BY product_key, period_key{unit_group}
+        GROUP BY product_key, period_key{unit_group}{qualifier_group}
     """
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *query_params)
 
-    period_map_by_code: dict[str, dict[str, float]] = defaultdict(dict)
-    staged_values: dict[tuple[str, str], list[tuple[str, float]]] = defaultdict(list)
+    staged_values: dict[tuple[str, str], list[tuple[str, str, float]]] = defaultdict(list)
     period_from = source_template.get("period_from")
     from_key = (
         _period_sort_key(str(period_from))
@@ -1817,14 +1877,10 @@ async def _fetch_guide_source_period_values(
         if from_key is not None and _period_sort_key(period_key) < from_key:
             continue
         unit_key = str(row["unit_key"])
+        qualifier_key = str(row["qualifier_key"])
         value = float(row["metric_value"] or 0.0)
-        staged_values[(code, period_key)].append((unit_key, value))
-    for (code, period_key), entries in staged_values.items():
-        selected_value = _select_guide_tonne_volume(entries)
-        if selected_value is None:
-            continue
-        period_map_by_code[code][period_key] = selected_value
-    return period_map_by_code
+        staged_values[(code, period_key)].append((qualifier_key, unit_key, value))
+    return _finalize_guide_period_map(staged_values, prefer_qualifier=prefer_qualifier)
 
 
 async def _build_oecd_crude_production_tz_rows(
@@ -1961,6 +2017,162 @@ async def _build_oecd_crude_production_tz_rows(
     )
 
     return (columns, [payload])
+
+
+async def _build_oecd_products_consumption_tz_rows(
+    *,
+    template: dict[str, Any],
+    country_code: str,
+    default_fact_table: str,
+    default_country_filter_key: str | None,
+    start_year: int,
+    current_year: int,
+    latest_label_template: str,
+    pct_label_template: str,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    source_templates = template.get("sources")
+    row_definitions_raw = template.get("row_definitions")
+    if not isinstance(source_templates, list) or not isinstance(row_definitions_raw, list):
+        return ([], [])
+
+    prefer_qualifier = bool(template.get("prefer_qualifier"))
+
+    annual_template = next(
+        (
+            source
+            for source in source_templates
+            if isinstance(source, dict) and str(source.get("frequency_code")) == "A"
+        ),
+        None,
+    )
+    monthly_template = next(
+        (
+            source
+            for source in source_templates
+            if isinstance(source, dict) and str(source.get("frequency_code")) == "M"
+        ),
+        None,
+    )
+    annual_values = (
+        await _fetch_guide_source_period_values(
+            source_template=annual_template,
+            country_code=country_code,
+            default_fact_table=default_fact_table,
+            default_country_filter_key=default_country_filter_key,
+            prefer_qualifier=prefer_qualifier,
+        )
+        if isinstance(annual_template, dict)
+        else {}
+    )
+    monthly_values = (
+        await _fetch_guide_source_period_values(
+            source_template=monthly_template,
+            country_code=country_code,
+            default_fact_table=default_fact_table,
+            default_country_filter_key=default_country_filter_key,
+            prefer_qualifier=prefer_qualifier,
+        )
+        if isinstance(monthly_template, dict)
+        else {}
+    )
+
+    annual_years: set[int] = set()
+    for values in annual_values.values():
+        for period_key in values.keys():
+            if re.fullmatch(r"\d{4}", period_key):
+                annual_years.add(int(period_key))
+    full_month_years = _full_month_years(monthly_values, current_year=current_year)
+    max_year_candidates = {year for year in annual_years.union(full_month_years) if year >= start_year}
+    if max_year_candidates:
+        max_completed_year = max(max_year_candidates)
+    else:
+        max_completed_year = current_year - 1
+
+    year_columns = [str(year) for year in range(start_year, max_completed_year + 1)]
+
+    relevant_codes: set[str] = set()
+    row_definitions: list[tuple[str, list[str]]] = []
+    for row_definition in row_definitions_raw:
+        if not isinstance(row_definition, dict):
+            continue
+        label = str(row_definition.get("label", "")).strip()
+        products_raw = row_definition.get("products")
+        if not label or not isinstance(products_raw, list):
+            continue
+        product_codes = _resolve_product_codes([str(item) for item in products_raw])
+        if not product_codes:
+            continue
+        row_definitions.append((label, product_codes))
+        relevant_codes.update(product_codes)
+
+    available_months_current_year: set[int] = set()
+    for product_code, values in monthly_values.items():
+        if product_code not in relevant_codes:
+            continue
+        for period_key in values.keys():
+            month = _month_in_year(period_key, current_year)
+            if month is not None:
+                available_months_current_year.add(month)
+    latest_available_month = max(available_months_current_year) if available_months_current_year else None
+    if latest_available_month is None:
+        latest_period_label = "нет данных"
+        pct_label = "% к нет данных"
+    else:
+        latest_period_label = latest_label_template.format(
+            year=current_year,
+            prev_year=current_year - 1,
+            x=latest_available_month,
+        )
+        pct_label = pct_label_template.format(
+            year=current_year,
+            prev_year=current_year - 1,
+            x=latest_available_month,
+        )
+    columns = ["Показатель", *year_columns, latest_period_label, pct_label]
+
+    current_months = (
+        range(1, latest_available_month + 1) if latest_available_month is not None else []
+    )
+    rows: list[dict[str, Any]] = []
+    for row_label, product_codes in row_definitions:
+        payload: dict[str, Any] = {"Показатель": row_label}
+        for year in year_columns:
+            annual_value = _sum_for_codes_at_period(annual_values, product_codes, year)
+            if annual_value is not None:
+                payload[year] = _round_guide_number(annual_value)
+                continue
+            year_int = int(year)
+            if year_int in full_month_years:
+                payload[year] = _round_guide_number(
+                    _sum_codes_for_year_months(monthly_values, product_codes, year_int, range(1, 13))
+                )
+            else:
+                payload[year] = None
+
+        latest_value = (
+            _sum_codes_for_year_months(monthly_values, product_codes, current_year, current_months)
+            if latest_available_month is not None
+            else None
+        )
+        previous_value = (
+            _sum_codes_for_year_months(
+                monthly_values,
+                product_codes,
+                current_year - 1,
+                current_months,
+            )
+            if latest_available_month is not None
+            else None
+        )
+        payload[latest_period_label] = _round_guide_number(latest_value)
+        payload[pct_label] = (
+            _round_guide_number((latest_value - previous_value) / previous_value * 100.0)
+            if latest_value is not None and previous_value not in (None, 0)
+            else None
+        )
+        rows.append(payload)
+
+    return (columns, rows)
 
 
 async def _build_nonoecd_crude_production_tz_rows(
@@ -2544,6 +2756,24 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             title=str(template["title"]),
             columns=columns,
             rows=table_rows,
+        )
+        return {
+            "table_id": payload.table_id,
+            "title": template["title"],
+            "columns": columns,
+            "rows": table_rows,
+        }
+
+    if mode == "tz_oecd_products_consumption":
+        columns, table_rows = await _build_oecd_products_consumption_tz_rows(
+            template=template,
+            country_code=payload.country_code,
+            default_fact_table=fact_table,
+            default_country_filter_key=country_filter_key,
+            start_year=start_year,
+            current_year=current_year,
+            latest_label_template=latest_label_template,
+            pct_label_template=pct_label_template,
         )
         return {
             "table_id": payload.table_id,
