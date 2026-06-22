@@ -49,7 +49,7 @@ LEGACY_SOURCE_IDS: dict[str, str] = {
 
 LEGACY_FLOW_CODES: dict[str, str] = {
     "IMPORT": "IMPORTS",
-    "FINCONS": "TFC_T",
+    "FINCONS": "GRDEL_INLAND_OBS",
     "REFINOBST": "REFININT_OBS",
     "TOTCONS": "GRDEL_INLAND_OBS",
 }

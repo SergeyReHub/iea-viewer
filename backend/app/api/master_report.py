@@ -141,7 +141,7 @@ LEGACY_SOURCE_IDS: dict[str, str] = {
 
 LEGACY_FLOW_CODES: dict[str, str] = {
     "IMPORT": "IMPORTS",
-    "FINCONS": "TFC_T",
+    "FINCONS": "GRDEL_INLAND_OBS",
     "REFINOBST": "REFININT_OBS",
     "TOTCONS": "GRDEL_INLAND_OBS",
 }
@@ -1849,17 +1849,46 @@ async def _fetch_guide_source_period_values(
     )
     unit_group = ", unit_key" if "unit_code" in columns_set else ""
     qualifier_group = ", qualifier_key" if prefer_qualifier and "qualifier" in columns_set else ""
-    query = f"""
-        SELECT
-            COALESCE(t.product_code::text, 'N/A') AS product_key,
-            {unit_select}
-            {qualifier_select}
-            COALESCE(t.time_period::text, 'N/A') AS period_key,
-            SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
-        FROM {fact_table} t
-        {where_sql}
-        GROUP BY product_key, period_key{unit_group}{qualifier_group}
-    """
+    source_group = ", source_key" if "source_id" in columns_set else ""
+    source_select = (
+        "COALESCE(t.source_id::text, 'N/A') AS source_key,"
+        if "source_id" in columns_set
+        else "'N/A'::text AS source_key,"
+    )
+    if "source_id" in columns_set:
+        query = f"""
+            SELECT
+                product_key,
+                unit_key,
+                qualifier_key,
+                period_key,
+                MAX(metric_value)::double precision AS metric_value
+            FROM (
+                SELECT
+                    COALESCE(t.product_code::text, 'N/A') AS product_key,
+                    {unit_select}
+                    {qualifier_select}
+                    {source_select}
+                    COALESCE(t.time_period::text, 'N/A') AS period_key,
+                    SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                FROM {fact_table} t
+                {where_sql}
+                GROUP BY product_key, period_key{unit_group}{qualifier_group}{source_group}
+            ) source_rows
+            GROUP BY product_key, period_key, unit_key, qualifier_key
+        """
+    else:
+        query = f"""
+            SELECT
+                COALESCE(t.product_code::text, 'N/A') AS product_key,
+                {unit_select}
+                {qualifier_select}
+                COALESCE(t.time_period::text, 'N/A') AS period_key,
+                SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+            FROM {fact_table} t
+            {where_sql}
+            GROUP BY product_key, period_key{unit_group}{qualifier_group}
+        """
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *query_params)
