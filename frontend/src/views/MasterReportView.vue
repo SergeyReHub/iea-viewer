@@ -201,8 +201,8 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
   {
     id: "oil-oecd-products-consumption-by-sector",
     group: "Нефть",
-    title: "Потребление нефтепродуктов по секторам в стране ОЭСР, (тыс. тонн)",
-    description: "Секторная структура потребления нефтепродуктов.",
+    title: "Структура потребления нефтепродуктов в стране ОЭСР, (тыс. тонн)",
+    description: "Структура потребления нефтепродуктов по видам.",
     factTable: "oil.fact_oil_balance",
     selectedFilterValues: { frequency_code: ["A"] }
   },

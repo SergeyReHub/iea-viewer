@@ -529,12 +529,41 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     "oil-oecd-products-consumption-by-sector": {
         "domain": "oil",
-        "title": "Потребление нефтепродуктов по секторам в стране ОЭСР, (тыс. тонн)",
+        "title": "Структура потребления нефтепродуктов в стране ОЭСР, (тыс. тонн)",
         "fact_table": "oil.fact_oil_balance",
-        "frequency_code": "A",
-        "row_dimension": "flow_code",
-        "base_filters": {},
-        "mode": "annual_share",
+        "mode": "tz_oecd_products_structure",
+        "round_digits": 1,
+        "other_label": "Прочие нефтепродукты",
+        "separator_label": "-",
+        "total_label": "Всего",
+        "total_products": ["TOTPRODS"],
+        "column_definitions": [
+            {"label": "СУГ", "products": ["LPG"]},
+            {"label": "Автобензин", "products": ["MOTORGAS"]},
+            {"label": "Керосин", "products": ["JETKERO", "OTHKERO"]},
+            {"label": "Дизтопливо", "products": ["GASDIES"]},
+            {"label": "Мазут", "products": ["RESFUEL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "M",
+                "period_from": "2025-01",
+                "base_filters": {
+                    "flow_code": ["FINCONS"],
+                    "product_code": [
+                        "TOTPRODS",
+                        "LPG",
+                        "MOTORGAS",
+                        "JETKERO",
+                        "OTHKERO",
+                        "GASDIES",
+                        "RESFUEL",
+                    ],
+                    "unit_code": ["KT"],
+                },
+            },
+        ],
+        "prefer_qualifier": True,
         "country_scope": "oecd",
     },
     "oil-oecd-products-export": {
@@ -590,10 +619,19 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "title": "Импорт нефтепродуктов в страну ОЭСР по направлениям, (тыс. тонн)",
         "fact_table": "oil.fact_oil_trade",
         "frequency_code": "A",
-        "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["IMPORTS"]},
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "unit_code": ["KT"],
+        },
         "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
         "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
         "country_scope": "oecd",
     },
     "oil-oecd-products-export-by-partners": {
@@ -602,9 +640,18 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "fact_table": "oil.fact_oil_trade",
         "frequency_code": "A",
         "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["EXPORTS"]},
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "unit_code": ["KT"],
+        },
         "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
         "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
         "country_scope": "oecd",
     },
     "gas-oecd-production": {
@@ -1638,6 +1685,18 @@ def _build_empty_guide_columns(
 ) -> list[str]:
     if mode == "annual_share":
         return ["Показатель", "Год-2", "Доля в структуре"]
+    if mode == "tz_oecd_products_structure":
+        return [
+            "Показатель",
+            "СУГ",
+            "Автобензин",
+            "Керосин",
+            "Дизтопливо",
+            "Мазут",
+            "Прочие нефтепродукты",
+            "-",
+            "Всего",
+        ]
     if mode in {
         "tz_oecd_crude_production",
         "tz_nonoecd_crude_production",
@@ -2202,6 +2261,128 @@ async def _build_oecd_products_consumption_tz_rows(
         rows.append(payload)
 
     return (columns, rows)
+
+
+async def _build_oecd_products_structure_tz_rows(
+    *,
+    template: dict[str, Any],
+    country_code: str,
+    default_fact_table: str,
+    default_country_filter_key: str | None,
+    current_year: int,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    source_templates = template.get("sources")
+    column_definitions_raw = template.get("column_definitions")
+    if not isinstance(source_templates, list) or not isinstance(column_definitions_raw, list):
+        return ([], [])
+
+    monthly_template = next(
+        (
+            source
+            for source in source_templates
+            if isinstance(source, dict) and str(source.get("frequency_code")) == "M"
+        ),
+        None,
+    )
+    if not isinstance(monthly_template, dict):
+        return ([], [])
+
+    prefer_qualifier = bool(template.get("prefer_qualifier"))
+    round_digits = int(template["round_digits"]) if isinstance(template.get("round_digits"), int) else 1
+    other_label = str(template.get("other_label", "Прочие нефтепродукты"))
+    separator_label = str(template.get("separator_label", "–"))
+    total_label = str(template.get("total_label", "Всего"))
+    total_products = _resolve_product_codes(
+        [str(item) for item in template.get("total_products", ["TOTPRODS"])]
+        if isinstance(template.get("total_products"), list)
+        else ["TOTPRODS"]
+    )
+
+    column_definitions: list[tuple[str, list[str]]] = []
+    for column_definition in column_definitions_raw:
+        if not isinstance(column_definition, dict):
+            continue
+        label = str(column_definition.get("label", "")).strip()
+        products_raw = column_definition.get("products")
+        if not label or not isinstance(products_raw, list):
+            continue
+        product_codes = _resolve_product_codes([str(item) for item in products_raw])
+        if not product_codes:
+            continue
+        column_definitions.append((label, product_codes))
+
+    if not column_definitions or not total_products:
+        return ([], [])
+
+    monthly_values = await _fetch_guide_source_period_values(
+        source_template=monthly_template,
+        country_code=country_code,
+        default_fact_table=default_fact_table,
+        default_country_filter_key=default_country_filter_key,
+        prefer_qualifier=prefer_qualifier,
+    )
+    if not monthly_values:
+        return ([], [])
+
+    total_period_map = {
+        code: monthly_values.get(code, {})
+        for code in total_products
+        if code in monthly_values
+    }
+    full_years = _full_month_years(total_period_map, current_year=current_year)
+    if not full_years:
+        return ([], [])
+
+    target_year = max(full_years)
+    year_label = f"{target_year} г."
+    columns = [
+        "Показатель",
+        *[label for label, _ in column_definitions],
+        other_label,
+        separator_label,
+        total_label,
+    ]
+
+    named_values: dict[str, float | None] = {}
+    for label, product_codes in column_definitions:
+        named_values[label] = _round_guide_number(
+            _sum_codes_for_year_months(monthly_values, product_codes, target_year, range(1, 13)),
+            round_digits,
+        )
+
+    total_value = _round_guide_number(
+        _sum_codes_for_year_months(monthly_values, total_products, target_year, range(1, 13)),
+        round_digits,
+    )
+    if total_value in (None, 0):
+        return (columns, [])
+
+    named_sum = sum(value for value in named_values.values() if value is not None)
+    other_value = _round_guide_number(float(total_value) - named_sum, round_digits)
+
+    shares: dict[str, float | None] = {}
+    for label, value in named_values.items():
+        if value is None:
+            shares[label] = None
+        else:
+            shares[label] = _round_guide_number(float(value) / float(total_value) * 100.0, round_digits)
+
+    named_share_sum = sum(share for share in shares.values() if share is not None)
+    other_share = _round_guide_number(100.0 - named_share_sum, round_digits)
+
+    value_row: dict[str, Any] = {"Показатель": year_label}
+    share_row: dict[str, Any] = {"Показатель": "%"}
+    for label in named_values:
+        value_row[label] = named_values[label]
+        share_row[label] = shares[label]
+    value_row[other_label] = other_value
+    share_row[other_label] = other_share
+    value_row[separator_label] = None
+    share_row[separator_label] = None
+    value_row[total_label] = total_value
+    share_row[total_label] = _round_guide_number(100.0, round_digits)
+
+    return (columns, [value_row, share_row])
 
 
 async def _build_nonoecd_crude_production_tz_rows(
@@ -2803,6 +2984,21 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             current_year=current_year,
             latest_label_template=latest_label_template,
             pct_label_template=pct_label_template,
+        )
+        return {
+            "table_id": payload.table_id,
+            "title": template["title"],
+            "columns": columns,
+            "rows": table_rows,
+        }
+
+    if mode == "tz_oecd_products_structure":
+        columns, table_rows = await _build_oecd_products_structure_tz_rows(
+            template=template,
+            country_code=payload.country_code,
+            default_fact_table=fact_table,
+            default_country_filter_key=country_filter_key,
+            current_year=current_year,
         )
         return {
             "table_id": payload.table_id,

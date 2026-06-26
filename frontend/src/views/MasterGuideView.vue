@@ -81,7 +81,10 @@ const oneDecimalGuideTableIds = new Set<string>([
   "oil-oecd-oil-export-by-partners",
   "oil-oecd-crude-field-production",
   "oil-oecd-refinery-throughput",
-  "oil-oecd-products-consumption"
+  "oil-oecd-products-consumption",
+  "oil-oecd-products-consumption-by-sector",
+  "oil-oecd-products-import-by-partners",
+  "oil-oecd-products-export-by-partners"
 ]);
 
 function formatCell(value: unknown, tableId: string): string {
