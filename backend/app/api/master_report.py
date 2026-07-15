@@ -842,6 +842,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "period_from": "2020",
                 "base_filters": {
                     "flow_code": ["INDPROD"],
+                    "unit_code": ["M_M3"],
                 },
             },
             {
@@ -849,6 +850,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "period_from": "2025-01",
                 "base_filters": {
                     "flow_code": ["INDPROD"],
+                    "unit_code": ["M_M3"],
                 },
             },
         ],
@@ -860,7 +862,10 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "fact_table": "gas.fact_gas_balance",
         "frequency_code": "A",
         "row_dimension": None,
-        "base_filters": {"flow_code": ["INDPROD"]},
+        "base_filters": {
+            "flow_code": ["INDPROD"],
+            "unit_code": ["M_M3"],
+        },
         "mode": "annual_series",
         "period_from": "2020",
         "value_scale": 0.001,
@@ -1999,6 +2004,16 @@ async def _fetch_guide_aggregate_period_values(
     return period_values
 
 
+def _collect_guide_annual_years(period_map_by_code: dict[str, dict[str, float]]) -> set[int]:
+    years: set[int] = set()
+    for values in period_map_by_code.values():
+        for period_key in values.keys():
+            period_year = _period_year(period_key)
+            if period_year and period_year.isdigit():
+                years.add(int(period_year))
+    return years
+
+
 def _sum_for_codes_at_period(
     period_map_by_code: dict[str, dict[str, float]],
     product_codes: list[str],
@@ -2006,7 +2021,13 @@ def _sum_for_codes_at_period(
 ) -> float | None:
     values: list[float] = []
     for code in product_codes:
-        value = _lookup_period_value(period_map_by_code.get(code, {}), period_key)
+        period_values = period_map_by_code.get(code, {})
+        value = _lookup_period_value(period_values, period_key)
+        if value is None:
+            for stored_period, stored_value in period_values.items():
+                if _period_year(stored_period) == period_key:
+                    value = stored_value
+                    break
         if value is not None:
             values.append(value)
     if not values:
@@ -2400,11 +2421,7 @@ async def _build_oecd_crude_production_tz_rows(
         row_products = dict(template.get("row_products", {}))
         crude_codes = _resolve_product_codes([str(item) for item in row_products.get("crude", ["CRUDEOIL"])])
 
-    annual_years: set[int] = set()
-    for values in annual_values.values():
-        for period_key in values.keys():
-            if re.fullmatch(r"\d{4}", period_key):
-                annual_years.add(int(period_key))
+    annual_years = _collect_guide_annual_years(annual_values)
     full_month_years = _full_month_years(monthly_values, current_year=current_year)
     max_year_candidates = {year for year in annual_years.union(full_month_years) if year >= start_year}
     if max_year_candidates:
