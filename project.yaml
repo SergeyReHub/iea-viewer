@@ -3,7 +3,7 @@ name: iea-viewer-v2
 slug_en: iea-viewer-v2
 has_readme: true
 has_git: true
-has_git_remote: false
+has_git_remote: true
 has_docs: true
 has_docker: true
 has_ci_cd: true
@@ -41,16 +41,19 @@ experimental_version: ''
 release_channel: experimental
 stable_branch: stable
 experimental_branch: experimental
-git_repo_present: false
-git_current_branch: ''
-git_last_commit: ''
+git_repo_present: true
+git_current_branch: master
+git_last_commit: ff532e2
 git_last_commit_at: null
-git_dirty: false
-git_remote_urls: []
+git_dirty: true
+git_remote_urls:
+- http://192.168.245.183/kudryashov/iea-viewer-v2.git
 git_latest_tag: ''
 git_latest_tag_at: null
 last_synced_at: null
 releases: []
-linked_task_ids: []
+linked_task_ids:
+- a2b6ae29-61ea-459b-9ca1-fbda5f0abdf8
+# Задачи мастер-справки TZ-260715-01…08: см. docs/ТЗ/TASKS.md; UUID добавлять при создании в Cursor Project
 created_at: '2026-06-08T06:20:37.602300Z'
-updated_at: '2026-06-08T06:20:37.602300Z'
+updated_at: '2026-07-15T05:40:00.000000Z'

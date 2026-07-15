@@ -38,7 +38,9 @@ docs/
 │   ├── environments.md                ← окружения, CI/CD
 │   └── cutover-v1-to-v2.md            ← cutover v1 → v2
 └── ТЗ/
-    └── *.docx                         ← постановки мастер-справки / отчётов
+    ├── README.md                      ← индекс постановок и привязка к table_id
+    ├── TASKS.md                       ← реестр задач (backlog) мастер-справки
+    └── YYMMDD*.docx                   ← постановки и замечания (хронологический порядок)
 ```
 
 ### Назначение префиксов
@@ -68,6 +70,7 @@ docs/
 | Как оформить README/docs в репозитории ETL? | `docs/07_database/external-etl-repository-guide.md` |
 | Как выкатить на prod? | `docs/09_delivery/` |
 | Как должна выглядеть таблица мастер-справки? | `docs/ТЗ/*.docx` + шаблон в `backend/` |
+| Новая постановка / задача в очереди? | [`docs/ТЗ/TASKS.md`](ТЗ/TASKS.md) + [`docs/ТЗ/README.md`](ТЗ/README.md) |
 
 ---
 
@@ -140,10 +143,12 @@ docs/
 
 ### `docs/ТЗ/` (постановки мастер-справки)
 
+- Индекс и привязка к шаблонам: [`docs/ТЗ/README.md`](ТЗ/README.md)
+- Реестр задач (backlog): [`docs/ТЗ/TASKS.md`](ТЗ/TASKS.md)
 - Формат: **`.docx`** (как у заказчика).
-- Имя: `ТЗ{КраткоеНазваниеОтчёта}{Контекст}.docx`.
+- Имя с префиксом даты: `YYMMDDТЗ{Название}.docx` или `YYMMDDЗамечания.docx` (при нескольких в день — `YYMMDD_NN…`)
 - Содержание: структура таблицы, фильтры, период, единицы, правила топ-N / округления.
-- Реализация в коде: шаблон в `backend/app/api/master_report.py` (`GUIDE_TABLE_TEMPLATES`); при новом ТЗ — обновить и docx, и шаблон.
+- Реализация в коде: шаблон в `backend/app/api/master_report.py` (`GUIDE_TABLE_TEMPLATES`); при новом ТЗ — docx, `TASKS.md`, README.
 
 ---
 
@@ -171,7 +176,7 @@ docs/
 | Новый API endpoint | `docs/api.md` |
 | Новый экран / фича | `docs/VIEWER_V2_FEATURES.md` |
 | Новый источник в `sources.yaml` | `VIEWER_V2_FEATURES.md`, при необходимости `07_database/` |
-| Новый шаблон мастер-справки | `docs/ТЗ/*.docx`, комментарий в `master_report.py` |
+| Новый шаблон мастер-справки | `docs/ТЗ/*.docx`, `docs/ТЗ/TASKS.md`, комментарий в `master_report.py` |
 | Смена портов / CI | `README.md`, `09_delivery/environments.md` |
 | Контракт БД для внешнего ETL | `external-source-output-contract.md` |
 
