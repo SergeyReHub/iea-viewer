@@ -207,6 +207,14 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     selectedFilterValues: { frequency_code: ["A"] }
   },
   {
+    id: "oil-oecd-products-production-structure",
+    group: "Нефть",
+    title: "Структура производства нефтепродуктов в стране ОЭСР, (тыс. тонн)",
+    description: "Структура производства нефтепродуктов по видам.",
+    factTable: "oil.fact_oil_balance",
+    selectedFilterValues: { flow_code: ["REFINOUT"], frequency_code: ["M"] }
+  },
+  {
     id: "oil-oecd-products-export",
     group: "Нефть",
     title: "Экспорт нефтепродуктов из страны ОЭСР, (тыс. тонн)",
@@ -239,6 +247,22 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     description: "Годовой импорт нефтепродуктов стран не-ОЭСР.",
     factTable: "oil.fact_oil_trade",
     selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["A"] }
+  },
+  {
+    id: "oil-nonoecd-products-consumption",
+    group: "Нефть",
+    title: "Потребление нефтепродуктов в стране не-ОЭСР, (тыс. тонн)",
+    description: "Годовое потребление нефтепродуктов (world supply).",
+    factTable: "oil.fact_oil_world_supply",
+    selectedFilterValues: { flow_code: ["NETDELIV"], frequency_code: ["A"] }
+  },
+  {
+    id: "oil-nonoecd-products-production",
+    group: "Нефть",
+    title: "Производство нефтепродуктов в стране не-ОЭСР, (тыс. тонн)",
+    description: "Годовое производство нефтепродуктов (world supply).",
+    factTable: "oil.fact_oil_world_supply",
+    selectedFilterValues: { flow_code: ["REFINOUT"], frequency_code: ["A"] }
   },
   {
     id: "oil-oecd-products-import-by-partners",
