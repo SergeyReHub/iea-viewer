@@ -658,6 +658,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "flow_code": ["EXPORTS"],
                     "unit_code": ["KT"],
+                    "partner_code": ["TOTAL"],
                 },
             },
         ],
@@ -706,6 +707,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "flow_code": ["IMPORTS"],
                     "unit_code": ["KT"],
+                    "partner_code": ["TOTAL"],
                 },
             },
         ],
@@ -1977,14 +1979,32 @@ async def _fetch_guide_aggregate_period_values(
         selected_filter_values=source_filters,
         allowed_filter_columns=allowed_filter_columns,
     )
-    query = f"""
-        SELECT
-            COALESCE(t.time_period::text, 'N/A') AS period_key,
-            SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
-        FROM {fact_table} t
-        {where_sql}
-        GROUP BY period_key
-    """
+    if "source_id" in columns_set:
+        source_select = "COALESCE(t.source_id::text, 'N/A') AS source_key,"
+        query = f"""
+            SELECT
+                period_key,
+                MAX(metric_value)::double precision AS metric_value
+            FROM (
+                SELECT
+                    COALESCE(t.time_period::text, 'N/A') AS period_key,
+                    {source_select}
+                    MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                FROM {fact_table} t
+                {where_sql}
+                GROUP BY period_key, source_key
+            ) source_rows
+            GROUP BY period_key
+        """
+    else:
+        query = f"""
+            SELECT
+                COALESCE(t.time_period::text, 'N/A') AS period_key,
+                MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+            FROM {fact_table} t
+            {where_sql}
+            GROUP BY period_key
+        """
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *query_params)
@@ -2196,28 +2216,70 @@ async def _fetch_guide_source_period_values(
         if "source_id" in columns_set
         else "'N/A'::text AS source_key,"
     )
+    partner_in_table = "partner_code" in columns_set
+    partner_select = (
+        "COALESCE(t.partner_code::text, 'N/A') AS partner_key,"
+        if partner_in_table
+        else ""
+    )
+    partner_group = ", partner_key" if partner_in_table else ""
     if "source_id" in columns_set:
-        query = f"""
-            SELECT
-                product_key,
-                unit_key,
-                qualifier_key,
-                period_key,
-                MAX(metric_value)::double precision AS metric_value
-            FROM (
+        if partner_in_table and "partner_code" not in source_filters:
+            query = f"""
                 SELECT
-                    COALESCE(t.product_code::text, 'N/A') AS product_key,
-                    {unit_select}
-                    {qualifier_select}
-                    {source_select}
-                    COALESCE(t.time_period::text, 'N/A') AS period_key,
-                    SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
-                FROM {fact_table} t
-                {where_sql}
-                GROUP BY product_key, period_key{unit_group}{qualifier_group}{source_group}
-            ) source_rows
-            GROUP BY product_key, period_key, unit_key, qualifier_key
-        """
+                    product_key,
+                    unit_key,
+                    qualifier_key,
+                    period_key,
+                    MAX(metric_value)::double precision AS metric_value
+                FROM (
+                    SELECT
+                        product_key,
+                        unit_key,
+                        qualifier_key,
+                        period_key,
+                        source_key,
+                        SUM(metric_value)::double precision AS metric_value
+                    FROM (
+                        SELECT
+                            COALESCE(t.product_code::text, 'N/A') AS product_key,
+                            {unit_select}
+                            {qualifier_select}
+                            {source_select}
+                            {partner_select}
+                            COALESCE(t.time_period::text, 'N/A') AS period_key,
+                            MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                        FROM {fact_table} t
+                        {where_sql}
+                        GROUP BY product_key, period_key{unit_group}{qualifier_group}{source_group}{partner_group}
+                    ) partner_rows
+                    GROUP BY product_key, period_key, unit_key, qualifier_key, source_key
+                ) source_rows
+                GROUP BY product_key, period_key, unit_key, qualifier_key
+            """
+        else:
+            query = f"""
+                SELECT
+                    product_key,
+                    unit_key,
+                    qualifier_key,
+                    period_key,
+                    MAX(metric_value)::double precision AS metric_value
+                FROM (
+                    SELECT
+                        COALESCE(t.product_code::text, 'N/A') AS product_key,
+                        {unit_select}
+                        {qualifier_select}
+                        {source_select}
+                        {partner_select}
+                        COALESCE(t.time_period::text, 'N/A') AS period_key,
+                        MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                    FROM {fact_table} t
+                    {where_sql}
+                    GROUP BY product_key, period_key{unit_group}{qualifier_group}{source_group}{partner_group}
+                ) source_rows
+                GROUP BY product_key, period_key, unit_key, qualifier_key
+            """
     else:
         query = f"""
             SELECT
@@ -2225,7 +2287,7 @@ async def _fetch_guide_source_period_values(
                 {unit_select}
                 {qualifier_select}
                 COALESCE(t.time_period::text, 'N/A') AS period_key,
-                SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
             FROM {fact_table} t
             {where_sql}
             GROUP BY product_key, period_key{unit_group}{qualifier_group}
