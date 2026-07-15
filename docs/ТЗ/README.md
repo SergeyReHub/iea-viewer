@@ -23,7 +23,7 @@ Word-документы от заказчика на таблицы мастер
 | TZ-260715-07 | `gas-oecd-production` | переделка | [260715_07…](260715_07ТЗДобычаГазаОЭСР.docx) |
 | TZ-260715-08 | `gas-nonoecd-production` | переделка | [260715_08…](260715_08ТЗДобычаГазаНеОЭСР.docx) |
 
-Для трёх **новых** `table_id` шаблон в `GUIDE_TABLE_TEMPLATES` отсутствует — создать при реализации: `oil-oecd-products-production-structure`, `oil-nonoecd-products-consumption`, `oil-nonoecd-products-production`. Остальные пять — переделка существующих заглушек (`monthly_with_yoy` / `annual_series`).
+Три новых `table_id` добавлены в `GUIDE_TABLE_TEMPLATES` (260715): `oil-oecd-products-production-structure`, `oil-nonoecd-products-consumption`, `oil-nonoecd-products-production`. Пять остальных — переделка заглушек `monthly_with_yoy` / `annual_series`.
 
 ---
 
