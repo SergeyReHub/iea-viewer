@@ -874,6 +874,60 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "round_digits": 1,
         "country_scope": "non_oecd",
     },
+    "gas-oecd-import": {
+        "domain": "gas",
+        "title": "Импорт газа в страну ОЭСР, (млрд м³)",
+        "fact_table": "gas.fact_gas_balance",
+        "mode": "tz_oecd_products_consumption",
+        "period_from": "2020",
+        "latest_period_label": "{x} мес. {year}",
+        "pct_label": "% к {x} мес. {prev_year}",
+        "value_scale": 0.001,
+        "round_digits": 1,
+        "optional_row_labels": ["СПГ"],
+        "row_definitions": [
+            {"label": "Всего", "products": ["NATURAL_GAS"]},
+            {"label": "СПГ", "products": ["LNG"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "M",
+                "period_from": "2020-01",
+                "base_filters": {
+                    "flow_code": ["IMPORTS"],
+                    "unit_code": ["M_M3"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
+    "gas-oecd-export": {
+        "domain": "gas",
+        "title": "Экспорт газа из страны ОЭСР, (млрд м³)",
+        "fact_table": "gas.fact_gas_balance",
+        "mode": "tz_oecd_products_consumption",
+        "period_from": "2020",
+        "latest_period_label": "{x} мес. {year}",
+        "pct_label": "% к {x} мес. {prev_year}",
+        "value_scale": 0.001,
+        "round_digits": 1,
+        "optional_row_labels": ["СПГ"],
+        "row_definitions": [
+            {"label": "Всего", "products": ["NATURAL_GAS"]},
+            {"label": "СПГ", "products": ["LNG"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "M",
+                "period_from": "2020-01",
+                "base_filters": {
+                    "flow_code": ["EXPORTS"],
+                    "unit_code": ["M_M3"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
     "gas-oecd-export-import": {
         "domain": "gas",
         "title": "Экспорт и импорт газа в стране ОЭСР, (млрд м³)",
@@ -901,23 +955,58 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
     "gas-nonoecd-import": {
         "domain": "gas",
         "title": "Импорт газа в страну не-ОЭСР, (млрд м³)",
-        "fact_table": "gas.fact_gas_trade",
+        "fact_table": "gas.fact_gas_balance",
         "frequency_code": "A",
-        "row_dimension": "flow_code",
-        "base_filters": {"flow_code": ["IMPORTS"]},
+        "row_dimension": None,
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "product_code": ["NATURAL_GAS"],
+            "unit_code": ["M_M3"],
+        },
         "mode": "annual_series",
-        "period_from": "2017",
+        "period_from": "2020",
+        "value_scale": 0.001,
+        "round_digits": 1,
+        "country_scope": "non_oecd",
+    },
+    "gas-nonoecd-export": {
+        "domain": "gas",
+        "title": "Экспорт газа из страны не-ОЭСР, (млрд м³)",
+        "fact_table": "gas.fact_gas_balance",
+        "frequency_code": "A",
+        "row_dimension": None,
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "product_code": ["NATURAL_GAS"],
+            "unit_code": ["M_M3"],
+        },
+        "mode": "annual_series",
+        "period_from": "2020",
+        "value_scale": 0.001,
+        "round_digits": 1,
         "country_scope": "non_oecd",
     },
     "gas-import-by-partners": {
         "domain": "gas",
-        "title": "Импорт газа в страну по направлениям, (млрд м³)",
+        "title": "Импорт газа в страну ОЭСР по направлениям, (млрд м³)",
         "fact_table": "gas.fact_gas_trade",
         "frequency_code": "A",
-        "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["IMPORTS"]},
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "product_code": ["NATURAL_GAS"],
+            "unit_code": ["M_M3"],
+        },
         "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "value_scale": 0.001,
         "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "NATURAL_GAS",
         "country_scope": "oecd",
     },
     "gas-lng-import-by-partners": {
@@ -936,10 +1025,22 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "title": "Экспорт газа из страны ОЭСР по направлениям, (млрд м³)",
         "fact_table": "gas.fact_gas_trade",
         "frequency_code": "A",
-        "row_dimension": ["partner_country_code", "partner_code"],
-        "base_filters": {"flow_code": ["EXPORTS"]},
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "product_code": ["NATURAL_GAS"],
+            "unit_code": ["M_M3"],
+        },
         "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "value_scale": 0.001,
         "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "NATURAL_GAS",
         "country_scope": "oecd",
     },
     "gas-lng-export-by-partners": {
@@ -2379,14 +2480,31 @@ async def _fetch_total_partner_aggregate_values(
         selected_filter_values=query_filters,
         allowed_filter_columns=allowed_filter_columns,
     )
-    query = f"""
-        SELECT
-            COALESCE(t.time_period::text, 'N/A') AS period_key,
-            SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
-        FROM {fact_table} t
-        {where_sql}
-        GROUP BY period_key
-    """
+    if "source_id" in columns_set:
+        query = f"""
+            SELECT
+                period_key,
+                MAX(metric_value)::double precision AS metric_value
+            FROM (
+                SELECT
+                    COALESCE(t.time_period::text, 'N/A') AS period_key,
+                    COALESCE(t.source_id::text, 'N/A') AS source_key,
+                    MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                FROM {fact_table} t
+                {where_sql}
+                GROUP BY period_key, source_key
+            ) source_rows
+            GROUP BY period_key
+        """
+    else:
+        query = f"""
+            SELECT
+                COALESCE(t.time_period::text, 'N/A') AS period_key,
+                SUM(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+            FROM {fact_table} t
+            {where_sql}
+            GROUP BY period_key
+        """
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *query_params)
@@ -2589,6 +2707,16 @@ async def _build_oecd_products_consumption_tz_rows(
         return ([], [])
 
     prefer_qualifier = bool(template.get("prefer_qualifier"))
+    value_scale = float(template.get("value_scale", 1.0))
+    round_digits = int(template["round_digits"]) if isinstance(template.get("round_digits"), int) else 1
+    optional_row_labels = {
+        str(label)
+        for label in template.get("optional_row_labels", [])
+        if str(label).strip()
+    }
+
+    def scaled_round(value: float | None) -> float | None:
+        return _round_guide_number(_scale_guide_number(value, value_scale), round_digits)
 
     annual_template = next(
         (
@@ -2692,11 +2820,11 @@ async def _build_oecd_products_consumption_tz_rows(
         for year in year_columns:
             annual_value = _sum_for_codes_at_period(annual_values, product_codes, year)
             if annual_value is not None:
-                payload[year] = _round_guide_number(annual_value)
+                payload[year] = scaled_round(annual_value)
                 continue
             year_int = int(year)
             if year_int in full_month_years:
-                payload[year] = _round_guide_number(
+                payload[year] = scaled_round(
                     _sum_codes_for_year_months(monthly_values, product_codes, year_int, range(1, 13))
                 )
             else:
@@ -2717,12 +2845,16 @@ async def _build_oecd_products_consumption_tz_rows(
             if latest_available_month is not None
             else None
         )
-        payload[latest_period_label] = _round_guide_number(latest_value)
+        payload[latest_period_label] = scaled_round(latest_value)
         payload[pct_label] = (
-            _round_guide_number((latest_value - previous_value) / previous_value * 100.0)
+            scaled_round((latest_value - previous_value) / previous_value * 100.0)
             if latest_value is not None and previous_value not in (None, 0)
             else None
         )
+        if optional_row_labels and row_label in optional_row_labels:
+            value_columns = [column for column in columns if column != "Показатель"]
+            if all(_is_zero_like_guide_value(payload.get(column)) for column in value_columns):
+                continue
         rows.append(payload)
 
     return (columns, rows)
@@ -3771,6 +3903,11 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
                 for period, value in values.items()
             }
         row_period_values = scaled_values
+        if total_partner_period_values:
+            total_partner_period_values = {
+                period: _scale_guide_number(value, value_scale) or 0.0
+                for period, value in total_partner_period_values.items()
+            }
     if mode == "monthly_with_yoy":
         columns, table_rows = _build_monthly_with_yoy_rows(
             row_period_values=row_period_values,

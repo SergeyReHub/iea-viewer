@@ -298,6 +298,24 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     selectedFilterValues: { flow_code: ["INDPROD"], frequency_code: ["A"] }
   },
   {
+    id: "gas-oecd-import",
+    group: "Газ",
+    title: "Импорт газа в страну ОЭСР, (млрд м³)",
+    description: "Помесячный импорт газа с агрегацией по годам.",
+    factTable: "gas.fact_gas_balance",
+    selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["M"] },
+    pivotLayout: "time_columns_filters_rows"
+  },
+  {
+    id: "gas-oecd-export",
+    group: "Газ",
+    title: "Экспорт газа из страны ОЭСР, (млрд м³)",
+    description: "Помесячный экспорт газа с агрегацией по годам.",
+    factTable: "gas.fact_gas_balance",
+    selectedFilterValues: { flow_code: ["EXPORTS"], frequency_code: ["M"] },
+    pivotLayout: "time_columns_filters_rows"
+  },
+  {
     id: "gas-oecd-export-import",
     group: "Газ",
     title: "Экспорт и импорт газа в стране ОЭСР, (млрд м³)",
@@ -319,13 +337,21 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     group: "Газ",
     title: "Импорт газа в страну не-ОЭСР, (млрд м³)",
     description: "Годовой импорт газа стран не-ОЭСР.",
-    factTable: "gas.fact_gas_trade",
+    factTable: "gas.fact_gas_balance",
     selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["A"] }
+  },
+  {
+    id: "gas-nonoecd-export",
+    group: "Газ",
+    title: "Экспорт газа из страны не-ОЭСР, (млрд м³)",
+    description: "Годовой экспорт газа стран не-ОЭСР.",
+    factTable: "gas.fact_gas_balance",
+    selectedFilterValues: { flow_code: ["EXPORTS"], frequency_code: ["A"] }
   },
   {
     id: "gas-import-by-partners",
     group: "Газ",
-    title: "Импорт газа в страну по направлениям, (млрд м³)",
+    title: "Импорт газа в страну ОЭСР по направлениям, (млрд м³)",
     description: "Структура импорта газа по партнерам.",
     factTable: "gas.fact_gas_trade",
     selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["A"] }
