@@ -303,7 +303,7 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     title: "Импорт газа в страну ОЭСР, (млрд м³)",
     description: "Помесячный импорт газа с агрегацией по годам.",
     factTable: "gas.fact_gas_balance",
-    selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["M"] },
+    selectedFilterValues: { flow_code: ["ENTRIES"], frequency_code: ["M"] },
     pivotLayout: "time_columns_filters_rows"
   },
   {
@@ -312,7 +312,7 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     title: "Экспорт газа из страны ОЭСР, (млрд м³)",
     description: "Помесячный экспорт газа с агрегацией по годам.",
     factTable: "gas.fact_gas_balance",
-    selectedFilterValues: { flow_code: ["EXPORTS"], frequency_code: ["M"] },
+    selectedFilterValues: { flow_code: ["EXITS"], frequency_code: ["M"] },
     pivotLayout: "time_columns_filters_rows"
   },
   {

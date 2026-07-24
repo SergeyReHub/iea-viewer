@@ -894,7 +894,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "frequency_code": "M",
                 "period_from": "2020-01",
                 "base_filters": {
-                    "flow_code": ["IMPORTS"],
+                    "flow_code": ["ENTRIES"],
                     "unit_code": ["M_M3"],
                 },
             },
@@ -921,7 +921,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "frequency_code": "M",
                 "period_from": "2020-01",
                 "base_filters": {
-                    "flow_code": ["EXPORTS"],
+                    "flow_code": ["EXITS"],
                     "unit_code": ["M_M3"],
                 },
             },
