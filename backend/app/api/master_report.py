@@ -733,6 +733,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "period_from": "2019",
         "require_no_oecd_balance": True,
         "qualifier_priority": ["A", "P", "N", "I"],
+        "optional_row_labels": ["СУГ", "Автобензин", "Авиакеросин", "Дизтопливо", "Мазут"],
         "row_definitions": [
             {"label": "Всего, в т.ч.:", "products": ["TOTPRODS"]},
             {"label": "СУГ", "products": ["LPG"]},
@@ -763,12 +764,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "require_no_oecd_balance": True,
         "qualifier_priority": ["N", "I"],
         "row_definitions": [
-            {"label": "Всего, в т.ч.:", "products": ["TOTPRODS"]},
-            {"label": "СУГ", "products": ["LPG"]},
-            {"label": "Автобензин", "products": ["MOTORGAS"]},
-            {"label": "Авиакеросин", "products": ["JETKERO"]},
-            {"label": "Дизтопливо", "products": ["GASDIES"]},
-            {"label": "Мазут", "products": ["RESFUEL"]},
+            {"label": "Всего, в т.ч.:", "products": ["OIL_SEC_PRODUCTS"]},
         ],
         "sources": [
             {
@@ -845,6 +841,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "flow_code": ["INDPROD"],
                     "unit_code": ["M_M3"],
+                    "source_id": ["1"],
                 },
             },
             {
@@ -853,6 +850,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "base_filters": {
                     "flow_code": ["INDPROD"],
                     "unit_code": ["M_M3"],
+                    "source_id": ["6"],
                 },
             },
         ],
@@ -951,6 +949,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "mode": "annual_series",
         "period_from": "2017",
         "country_scope": "oecd",
+        "guide_hidden": True,
     },
     "gas-nonoecd-import": {
         "domain": "gas",
@@ -996,6 +995,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
             "flow_code": ["IMPORTS"],
             "product_code": ["NATURAL_GAS"],
             "unit_code": ["M_M3"],
+            "source_id": ["2"],
         },
         "mode": "annual_share",
         "period_from": "2024",
@@ -1030,6 +1030,7 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
             "flow_code": ["EXPORTS"],
             "product_code": ["NATURAL_GAS"],
             "unit_code": ["M_M3"],
+            "source_id": ["3"],
         },
         "mode": "annual_share",
         "period_from": "2024",
@@ -1199,6 +1200,7 @@ GUIDE_TEMPLATE_PRODUCT_GROUP: dict[str, str] = {
 }
 
 TECHNICAL_COLUMNS = {"id", "load_batch_id", "created_at", "updated_at", "time_period_start"}
+PIVOT_DEDUP_EXCLUDE = TECHNICAL_COLUMNS | {"value", "old_data"}
 
 
 def list_allowed_fact_tables() -> list[str]:
@@ -2603,6 +2605,7 @@ async def _build_oecd_crude_production_tz_rows(
 
     annual_years = _collect_guide_annual_years(annual_values)
     full_month_years = _full_month_years(monthly_values, current_year=current_year)
+    last_annual_year = max(annual_years) if annual_years else None
     max_year_candidates = {year for year in annual_years.union(full_month_years) if year >= start_year}
     if max_year_candidates:
         max_completed_year = max(max_year_candidates)
@@ -2642,14 +2645,16 @@ async def _build_oecd_crude_production_tz_rows(
 
     payload: dict[str, Any] = {"Показатель": crude_label}
     for year in year_columns:
-        annual_value = _scale_guide_number(
-            _sum_for_codes_at_period(annual_values, crude_codes, year),
-            value_scale,
-        )
-        if annual_value is not None:
-            payload[year] = _round_guide_number(annual_value, round_digits)
-            continue
         year_int = int(year)
+        use_annual_source = last_annual_year is None or year_int <= last_annual_year
+        if use_annual_source:
+            annual_value = _scale_guide_number(
+                _sum_for_codes_at_period(annual_values, crude_codes, year),
+                value_scale,
+            )
+            if annual_value is not None:
+                payload[year] = _round_guide_number(annual_value, round_digits)
+                continue
         if year_int in full_month_years:
             payload[year] = _round_guide_number(
                 _scale_guide_number(
@@ -2927,12 +2932,20 @@ async def _build_nonoecd_world_supply_annual_tz_rows(
         row_definitions.append((label, product_codes))
 
     rows: list[dict[str, Any]] = []
+    optional_row_labels = {
+        str(label)
+        for label in template.get("optional_row_labels", [])
+        if str(label).strip()
+    }
     for row_label, product_codes in row_definitions:
         payload: dict[str, Any] = {"Показатель": row_label}
         for year in year_columns:
             payload[year] = _round_guide_number(
                 _sum_for_codes_at_period(annual_values, product_codes, year)
             )
+        if optional_row_labels and row_label in optional_row_labels:
+            if all(_is_zero_like_guide_value(payload.get(column)) for column in year_columns):
+                continue
         rows.append(payload)
 
     return (columns, rows)
@@ -3439,6 +3452,26 @@ async def fetch_filter_count_map(
     return {row["code"]: row["row_count"] for row in rows}
 
 
+def _dedupe_fact_rows_for_pivot(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not rows:
+        return rows
+    deduped: dict[tuple[tuple[str, str], ...], dict[str, Any]] = {}
+    for row in rows:
+        key = tuple(
+            sorted(
+                (str(key), str(value))
+                for key, value in row.items()
+                if key not in PIVOT_DEDUP_EXCLUDE and value is not None
+            )
+        )
+        metric = float(row.get("value") or 0.0)
+        existing = deduped.get(key)
+        if existing is None or metric > float(existing.get("value") or 0.0):
+            deduped[key] = dict(row)
+            deduped[key]["value"] = metric
+    return list(deduped.values())
+
+
 def build_pivot(
     rows: list[dict[str, Any]],
     filter_values: dict[str, list[str]],
@@ -3568,6 +3601,7 @@ async def get_guide_templates(domain: str | None = None) -> dict[str, Any]:
             "title": template["title"],
         }
         for template_id, template in GUIDE_TABLE_TEMPLATES.items()
+        if not template.get("guide_hidden")
         if domain is None or template["domain"] == domain
     ]
     return {"templates": templates}
@@ -4044,15 +4078,16 @@ async def build_report(filters: MasterReportFilters) -> dict[str, Any]:
         clean_records.append(clean_row)
 
     columns = list(clean_records[0].keys()) if clean_records else []
+    pivot_rows_input = _dedupe_fact_rows_for_pivot(raw_records_all)
     pivot_payload = build_pivot(
-        rows=raw_records_all,
+        rows=pivot_rows_input,
         filter_values=filters.filter_values,
         available_filter_keys=available_filter_keys,
         pivot_layout=filters.pivot_layout,
         value_label_maps=value_label_maps,
     )
     return {
-        "count": len(raw_records_all),
+        "count": len(pivot_rows_input),
         "columns": columns,
         "rows": clean_records,
         "pivot": pivot_payload,
