@@ -349,6 +349,31 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     selectedFilterValues: { flow_code: ["EXPORTS"], frequency_code: ["A"] }
   },
   {
+    id: "gas-oecd-consumption",
+    group: "Газ",
+    title: "Потребление газа в стране ОЭСР, (млрд м³)",
+    description: "Потребление газа: годовые данные с 2020 и месячные с 2025-01.",
+    factTable: "gas.fact_gas_balance",
+    selectedFilterValues: {
+      flow_code: ["GRDEL_INLAND_OBS"],
+      unit_code: ["M_M3"],
+      frequency_code: ["M"]
+    },
+    pivotLayout: "time_columns_filters_rows"
+  },
+  {
+    id: "gas-nonoecd-consumption",
+    group: "Газ",
+    title: "Потребление газа в стране не-ОЭСР, (млрд м³)",
+    description: "Годовое потребление газа в странах не-ОЭСР.",
+    factTable: "gas.fact_gas_balance",
+    selectedFilterValues: {
+      flow_code: ["GRDEL_INLAND_OBS"],
+      unit_code: ["M_M3"],
+      frequency_code: ["A"]
+    }
+  },
+  {
     id: "gas-import-by-partners",
     group: "Газ",
     title: "Импорт газа в страну ОЭСР по направлениям, (млрд м³)",
@@ -384,9 +409,13 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     id: "gas-oecd-consumption",
     group: "Газ",
     title: "Потребление газа в стране ОЭСР, (млрд м³)",
-    description: "Месячное потребление газа.",
+    description: "Потребление газа: годовые данные с 2020 и месячные с 2025-01.",
     factTable: "gas.fact_gas_balance",
-    selectedFilterValues: { flow_code: ["TOTCONS"], frequency_code: ["M"] },
+    selectedFilterValues: {
+      flow_code: ["GRDEL_INLAND_OBS"],
+      unit_code: ["M_M3"],
+      frequency_code: ["M"]
+    },
     pivotLayout: "time_columns_filters_rows"
   },
   {

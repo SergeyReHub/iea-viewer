@@ -93,6 +93,8 @@ const oneDecimalGuideTableIds = new Set<string>([
   "oil-oecd-products-export-by-partners",
   "gas-oecd-production",
   "gas-nonoecd-production",
+  "gas-oecd-consumption",
+  "gas-nonoecd-consumption",
   "gas-oecd-import",
   "gas-oecd-export",
   "gas-nonoecd-import",
