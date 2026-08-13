@@ -384,10 +384,15 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
   {
     id: "gas-lng-import-by-partners",
     group: "Газ",
-    title: "Импорт СПГ в страну по направлениям, (млрд м³)",
-    description: "Структура импорта СПГ по партнерам.",
+    title: "Импорт СПГ в страну ОЭСР по направлениям, (млрд м³)",
+    description: "Структура импорта СПГ по партнёрам за последний доступный год.",
     factTable: "gas.fact_gas_trade",
-    selectedFilterValues: { flow_code: ["IMPORTS"], frequency_code: ["A"] }
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["LNG"],
+      unit_code: ["M_M3"],
+      frequency_code: ["A"]
+    }
   },
   {
     id: "gas-export-by-partners",
@@ -401,9 +406,14 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     id: "gas-lng-export-by-partners",
     group: "Газ",
     title: "Экспорт СПГ из страны ОЭСР по направлениям, (млрд м³)",
-    description: "Структура экспорта СПГ по партнерам.",
+    description: "Структура экспорта СПГ по партнёрам за последний доступный год.",
     factTable: "gas.fact_gas_trade",
-    selectedFilterValues: { flow_code: ["EXPORTS"], frequency_code: ["A"] }
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["LNG"],
+      unit_code: ["M_M3"],
+      frequency_code: ["A"]
+    }
   },
   {
     id: "gas-oecd-consumption",
