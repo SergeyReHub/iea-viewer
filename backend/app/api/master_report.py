@@ -1142,18 +1142,109 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "mode": "annual_share",
         "country_scope": "oecd",
     },
-    "coal-balance-production": {
+    "coal-oecd-production": {
         "domain": "coal",
-        "title": "Добыча угля в стране, (тыс. тонн)",
+        "title": "Добыча угля в стране ОЭСР, (тыс. тонн)",
         "fact_table": "coal.fact_coal_balance",
-        "frequency_code": "A",
-        "row_dimension": "product_code",
-        "base_filters": {
-            "flow_code": ["INDPROD"],
-            "unit_code": ["KT"],
-        },
-        "mode": "annual_series",
-        "period_from": "2018",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["INDPROD"],
+                    "unit_code": ["KT"],
+                    "source_id": ["12"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
+    "coal-nonoecd-production": {
+        "domain": "coal",
+        "title": "Добыча угля в стране не-ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["INDPROD"],
+                    "unit_code": ["KT"],
+                    "source_id": ["14"],
+                },
+            },
+        ],
+        "country_scope": "non_oecd",
+    },
+    "coal-oecd-consumption": {
+        "domain": "coal",
+        "title": "Потребление угля в стране ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["TES"],
+                    "unit_code": ["KT"],
+                    "source_id": ["12"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
+    "coal-nonoecd-consumption": {
+        "domain": "coal",
+        "title": "Потребление угля в стране не-ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["TES"],
+                    "unit_code": ["KT"],
+                    "source_id": ["14"],
+                },
+            },
+        ],
+        "country_scope": "non_oecd",
     },
     "coal-trade-import-partners": {
         "domain": "coal",

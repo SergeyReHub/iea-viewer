@@ -435,6 +435,58 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     description: "Секторная структура потребления газа.",
     factTable: "gas.fact_gas_balance",
     selectedFilterValues: { frequency_code: ["A"] }
+  },
+  {
+    id: "coal-oecd-production",
+    group: "Уголь",
+    title: "Добыча угля в стране ОЭСР, (тыс. тонн)",
+    description: "Годовая добыча каменного и бурого угля в странах ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["INDPROD"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-nonoecd-production",
+    group: "Уголь",
+    title: "Добыча угля в стране не-ОЭСР, (тыс. тонн)",
+    description: "Годовая добыча каменного и бурого угля в странах не-ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["INDPROD"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-consumption",
+    group: "Уголь",
+    title: "Потребление угля в стране ОЭСР, (тыс. тонн)",
+    description: "Годовое потребление каменного и бурого угля в странах ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["TES"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-nonoecd-consumption",
+    group: "Уголь",
+    title: "Потребление угля в стране не-ОЭСР, (тыс. тонн)",
+    description: "Годовое потребление каменного и бурого угля в странах не-ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["TES"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
   }
 ];
 

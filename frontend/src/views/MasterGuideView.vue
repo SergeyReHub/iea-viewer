@@ -102,7 +102,11 @@ const oneDecimalGuideTableIds = new Set<string>([
   "gas-import-by-partners",
   "gas-export-by-partners",
   "gas-lng-import-by-partners",
-  "gas-lng-export-by-partners"
+  "gas-lng-export-by-partners",
+  "coal-oecd-production",
+  "coal-nonoecd-production",
+  "coal-oecd-consumption",
+  "coal-nonoecd-consumption"
 ]);
 
 function formatCell(value: unknown, tableId: string): string {
