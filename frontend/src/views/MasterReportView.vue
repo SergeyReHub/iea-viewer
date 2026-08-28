@@ -431,10 +431,15 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
   {
     id: "gas-oecd-consumption-by-sectors",
     group: "Газ",
-    title: "Потребление газа в стране ОЭСР по секторам, (млрд м³)",
-    description: "Секторная структура потребления газа.",
+    title: "Потребление газа в стране ОЭСР по секторам, (млн м³)",
+    description: "Структура внутреннего потребления газа по секторам за последний доступный год.",
     factTable: "gas.fact_gas_balance",
-    selectedFilterValues: { frequency_code: ["A"] }
+    selectedFilterValues: {
+      flow_code: ["GRDEL_INLAND_OBS"],
+      product_code: ["NATURAL_GAS"],
+      unit_code: ["M_M3"],
+      frequency_code: ["A"]
+    }
   },
   {
     id: "coal-oecd-production",
@@ -483,6 +488,58 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
     factTable: "coal.fact_coal_balance",
     selectedFilterValues: {
       flow_code: ["TES"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-import",
+    group: "Уголь",
+    title: "Импорт угля в страну ОЭСР, (тыс. тонн)",
+    description: "Годовой импорт каменного и бурого угля в странах ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-nonoecd-import",
+    group: "Уголь",
+    title: "Импорт угля в страну не-ОЭСР, (тыс. тонн)",
+    description: "Годовой импорт каменного и бурого угля в странах не-ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-export",
+    group: "Уголь",
+    title: "Экспорт угля из страны ОЭСР, (тыс. тонн)",
+    description: "Годовой экспорт каменного и бурого угля из стран ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-nonoecd-export",
+    group: "Уголь",
+    title: "Экспорт угля из страны не-ОЭСР, (тыс. тонн)",
+    description: "Годовой экспорт каменного и бурого угля из стран не-ОЭСР.",
+    factTable: "coal.fact_coal_balance",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
       product_code: ["HARDCOAL", "BROWNCOAL"],
       unit_code: ["KT"],
       frequency_code: ["A"]

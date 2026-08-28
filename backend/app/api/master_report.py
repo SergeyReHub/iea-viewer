@@ -1134,12 +1134,49 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     "gas-oecd-consumption-by-sectors": {
         "domain": "gas",
-        "title": "Потребление газа в стране ОЭСР по секторам, (млрд м³)",
+        "title": "Потребление газа в стране ОЭСР по секторам, (млн м³)",
         "fact_table": "gas.fact_gas_balance",
-        "frequency_code": "A",
-        "row_dimension": "flow_code",
-        "base_filters": {},
-        "mode": "annual_share",
+        "mode": "tz_oecd_sector_share",
+        "period_from": "2024",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "total_label": "Всего, в т.ч.:",
+        "total_flow": "GRDEL_INLAND_OBS",
+        "optional_row_labels": [
+            "Транспорт",
+            "Промышленность",
+            "Жилой сектор",
+            "Коммерческие и общественные услуги",
+            "Сельское и лесное хозяйство",
+            "Рыболовство",
+            "Собственное потребление энергетики",
+            "Трансформация",
+            "Неэнергетическое",
+            "Прочее",
+        ],
+        "row_definitions": [
+            {"label": "Транспорт", "flows": ["TOTTRANS_T"]},
+            {"label": "Промышленность", "flows": ["TOTIND_T"]},
+            {"label": "Жилой сектор", "flows": ["RESIDENT_T"]},
+            {"label": "Коммерческие и общественные услуги", "flows": ["COMMPUB_T"]},
+            {"label": "Сельское и лесное хозяйство", "flows": ["AGRI_FOREST"]},
+            {"label": "Рыболовство", "flows": ["FISHING_T"]},
+            {"label": "Собственное потребление энергетики", "flows": ["TOTENGY"]},
+            {"label": "Трансформация", "flows": ["TOTTRANF"]},
+            {"label": "Неэнергетическое", "flows": ["NE_TOT"]},
+            {"label": "Прочее", "residual": True},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2024",
+                "base_filters": {
+                    "product_code": ["NATURAL_GAS"],
+                    "unit_code": ["M_M3"],
+                    "source_id": ["1"],
+                },
+            },
+        ],
         "country_scope": "oecd",
     },
     "coal-oecd-production": {
@@ -1239,6 +1276,112 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
                 "period_from": "2020",
                 "base_filters": {
                     "flow_code": ["TES"],
+                    "unit_code": ["KT"],
+                    "source_id": ["14"],
+                },
+            },
+        ],
+        "country_scope": "non_oecd",
+    },
+    "coal-oecd-import": {
+        "domain": "coal",
+        "title": "Импорт угля в страну ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["IMPORTS"],
+                    "unit_code": ["KT"],
+                    "source_id": ["12"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
+    "coal-nonoecd-import": {
+        "domain": "coal",
+        "title": "Импорт угля в страну не-ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["IMPORTS"],
+                    "unit_code": ["KT"],
+                    "source_id": ["14"],
+                },
+            },
+        ],
+        "country_scope": "non_oecd",
+    },
+    "coal-oecd-export": {
+        "domain": "coal",
+        "title": "Экспорт угля из страны ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "value_scale": -1.0,
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["EXPORTS"],
+                    "unit_code": ["KT"],
+                    "source_id": ["12"],
+                },
+            },
+        ],
+        "country_scope": "oecd",
+    },
+    "coal-nonoecd-export": {
+        "domain": "coal",
+        "title": "Экспорт угля из страны не-ОЭСР, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_balance",
+        "mode": "tz_nonoecd_world_supply_annual",
+        "period_from": "2020",
+        "value_scale": -1.0,
+        "round_digits": 1,
+        "optional_row_labels": ["Каменный уголь", "Бурый уголь"],
+        "row_definitions": [
+            {"label": "Всего, в т.ч.:", "products": ["HARDCOAL", "BROWNCOAL"]},
+            {"label": "Каменный уголь", "products": ["HARDCOAL"]},
+            {"label": "Бурый уголь", "products": ["BROWNCOAL"]},
+        ],
+        "sources": [
+            {
+                "frequency_code": "A",
+                "period_from": "2020",
+                "base_filters": {
+                    "flow_code": ["EXPORTS"],
                     "unit_code": ["KT"],
                     "source_id": ["14"],
                 },
@@ -2142,7 +2285,7 @@ def _build_empty_guide_columns(
 ) -> list[str]:
     if mode == "annual_share":
         return ["Показатель", "Год-2", "Доля в структуре"]
-    if mode == "tz_oecd_products_structure":
+    if mode in {"tz_oecd_products_structure", "tz_oecd_sector_share"}:
         return ["Показатель", f"{current_year - 1} г.", "Доля в структуре"]
     if mode in {
         "tz_oecd_crude_production",
@@ -2280,6 +2423,82 @@ async def _fetch_guide_aggregate_period_values(
             continue
         period_values[period_key] = float(row["metric_value"] or 0.0)
     return period_values
+
+
+async def _fetch_guide_flow_period_values(
+    *,
+    source_template: dict[str, Any],
+    country_code: str,
+    default_fact_table: str,
+    default_country_filter_key: str | None,
+) -> dict[str, dict[str, float]]:
+    fact_table = str(source_template.get("fact_table") or default_fact_table)
+    source_filters = {
+        key: list(values)
+        for key, values in dict(source_template.get("base_filters", {})).items()
+    }
+    frequency_code = source_template.get("frequency_code")
+    if frequency_code:
+        source_filters["frequency_code"] = [str(frequency_code)]
+
+    country_filter_key = default_country_filter_key
+    if fact_table != default_fact_table:
+        country_filter_key = await _resolve_country_filter_key(fact_table)
+    if country_code and country_filter_key:
+        source_filters[country_filter_key] = [country_code]
+
+    source_filters = _normalize_guide_filters(source_filters)
+    columns_set = await get_table_columns(fact_table)
+    allowed_filter_columns = {spec["key"] for spec in map_filterable_columns(columns_set)}
+    where_sql, query_params = build_where_clause(
+        selected_filter_values=source_filters,
+        allowed_filter_columns=allowed_filter_columns,
+    )
+    if "source_id" in columns_set:
+        query = f"""
+            SELECT
+                flow_key,
+                period_key,
+                MAX(metric_value)::double precision AS metric_value
+            FROM (
+                SELECT
+                    COALESCE(t.flow_code::text, 'N/A') AS flow_key,
+                    COALESCE(t.time_period::text, 'N/A') AS period_key,
+                    COALESCE(t.source_id::text, 'N/A') AS source_key,
+                    MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                FROM {fact_table} t
+                {where_sql}
+                GROUP BY flow_key, period_key, source_key
+            ) source_rows
+            GROUP BY flow_key, period_key
+        """
+    else:
+        query = f"""
+            SELECT
+                COALESCE(t.flow_code::text, 'N/A') AS flow_key,
+                COALESCE(t.time_period::text, 'N/A') AS period_key,
+                MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+            FROM {fact_table} t
+            {where_sql}
+            GROUP BY flow_key, period_key
+        """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(query, *query_params)
+
+    period_from = source_template.get("period_from")
+    from_key = (
+        _period_sort_key(str(period_from))
+        if isinstance(period_from, str) and period_from.strip()
+        else None
+    )
+    flow_values: dict[str, dict[str, float]] = defaultdict(dict)
+    for row in rows:
+        period_key = str(row["period_key"])
+        if from_key is not None and _period_sort_key(period_key) < from_key:
+            continue
+        flow_values[str(row["flow_key"])][period_key] = float(row["metric_value"] or 0.0)
+    return dict(flow_values)
 
 
 def _collect_guide_annual_years(period_map_by_code: dict[str, dict[str, float]]) -> set[int]:
@@ -3052,6 +3271,8 @@ async def _build_nonoecd_world_supply_annual_tz_rows(
 
     prefer_qualifier = bool(template.get("prefer_qualifier"))
     qualifier_priority = _resolve_qualifier_priority(template)
+    value_scale = float(template.get("value_scale", 1.0))
+    round_digits = int(template["round_digits"]) if isinstance(template.get("round_digits"), int) else 1
     annual_values = await _fetch_guide_source_period_values(
         source_template=annual_template,
         country_code=country_code,
@@ -3096,13 +3317,138 @@ async def _build_nonoecd_world_supply_annual_tz_rows(
         payload: dict[str, Any] = {"Показатель": row_label}
         for year in year_columns:
             payload[year] = _round_guide_number(
-                _sum_for_codes_at_period(annual_values, product_codes, year)
+                _scale_guide_number(
+                    _sum_for_codes_at_period(annual_values, product_codes, year),
+                    value_scale,
+                ),
+                round_digits,
             )
         if optional_row_labels and row_label in optional_row_labels:
             if all(_is_zero_like_guide_value(payload.get(column)) for column in year_columns):
                 continue
         rows.append(payload)
 
+    return (columns, rows)
+
+
+async def _build_oecd_sector_share_tz_rows(
+    *,
+    template: dict[str, Any],
+    country_code: str,
+    default_fact_table: str,
+    default_country_filter_key: str | None,
+    start_year: int,
+    current_year: int,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    source_templates = template.get("sources")
+    row_definitions_raw = template.get("row_definitions")
+    if not isinstance(source_templates, list) or not isinstance(row_definitions_raw, list):
+        return ([], [])
+
+    annual_template = next(
+        (
+            source
+            for source in source_templates
+            if isinstance(source, dict) and str(source.get("frequency_code")) == "A"
+        ),
+        None,
+    )
+    if not isinstance(annual_template, dict):
+        return ([], [])
+
+    round_digits = int(template["round_digits"]) if isinstance(template.get("round_digits"), int) else 1
+    total_label = str(template.get("total_label", "Всего, в т.ч.:"))
+    total_flow = str(template.get("total_flow", "GRDEL_INLAND_OBS"))
+    year_label_template = str(template.get("annual_share_year_label", "{year} г."))
+    optional_row_labels = {
+        str(label)
+        for label in template.get("optional_row_labels", [])
+        if str(label).strip()
+    }
+
+    flow_values = await _fetch_guide_flow_period_values(
+        source_template=annual_template,
+        country_code=country_code,
+        default_fact_table=default_fact_table,
+        default_country_filter_key=default_country_filter_key,
+    )
+    available_years = {year for year in _collect_guide_annual_years(flow_values) if year >= start_year}
+    if available_years:
+        target_year = max(available_years)
+    else:
+        target_year = min(current_year - 1, start_year)
+    year_label = year_label_template.format(year=target_year)
+    columns = ["Показатель", year_label, "Доля в структуре"]
+    target_year_key = str(target_year)
+
+    total_value = _sum_for_codes_at_period(flow_values, [total_flow], target_year_key)
+    named_rows: list[tuple[str, float | None]] = []
+    residual_label: str | None = None
+    named_sum = 0.0
+    for row_definition in row_definitions_raw:
+        if not isinstance(row_definition, dict):
+            continue
+        label = str(row_definition.get("label", "")).strip()
+        if not label:
+            continue
+        if bool(row_definition.get("residual")):
+            residual_label = label
+            continue
+        flows_raw = row_definition.get("flows")
+        if not isinstance(flows_raw, list):
+            continue
+        flow_codes = [str(item) for item in flows_raw if str(item).strip()]
+        if not flow_codes:
+            continue
+        value = _sum_for_codes_at_period(flow_values, flow_codes, target_year_key)
+        named_rows.append((label, value))
+        if value is not None:
+            named_sum += value
+
+    residual_value = (
+        (total_value - named_sum) if residual_label and total_value is not None else None
+    )
+
+    def share_of(value: float | None) -> float | None:
+        if value is None:
+            return None
+        if total_value in (None, 0):
+            return 0.0
+        return value / total_value * 100.0
+
+    rows: list[dict[str, Any]] = [
+        {
+            "Показатель": total_label,
+            year_label: _round_guide_number(total_value, round_digits),
+            "Доля в структуре": _round_guide_number(100.0 if total_value else 0.0, round_digits)
+            if total_value is not None
+            else None,
+        }
+    ]
+    for label, value in named_rows:
+        if optional_row_labels and label in optional_row_labels and _is_zero_like_guide_value(value):
+            continue
+        rows.append(
+            {
+                "Показатель": label,
+                year_label: _round_guide_number(value, round_digits),
+                "Доля в структуре": _round_guide_number(share_of(value), round_digits),
+            }
+        )
+    if residual_label:
+        rounded_residual = _round_guide_number(residual_value, round_digits)
+        if not (
+            optional_row_labels
+            and residual_label in optional_row_labels
+            and _is_zero_like_guide_value(rounded_residual)
+        ):
+            rows.append(
+                {
+                    "Показатель": residual_label,
+                    year_label: rounded_residual,
+                    "Доля в структуре": _round_guide_number(share_of(residual_value), round_digits),
+                }
+            )
     return (columns, rows)
 
 
@@ -3867,6 +4213,22 @@ async def build_guide_table(payload: GuideTableRequest) -> dict[str, Any]:
             country_code=payload.country_code,
             default_fact_table=fact_table,
             default_country_filter_key=country_filter_key,
+            current_year=current_year,
+        )
+        return {
+            "table_id": payload.table_id,
+            "title": template["title"],
+            "columns": columns,
+            "rows": table_rows,
+        }
+
+    if mode == "tz_oecd_sector_share":
+        columns, table_rows = await _build_oecd_sector_share_tz_rows(
+            template=template,
+            country_code=payload.country_code,
+            default_fact_table=fact_table,
+            default_country_filter_key=country_filter_key,
+            start_year=start_year,
             current_year=current_year,
         )
         return {
