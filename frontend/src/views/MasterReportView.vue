@@ -544,6 +544,84 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
       unit_code: ["KT"],
       frequency_code: ["A"]
     }
+  },
+  {
+    id: "coal-oecd-export-by-partners",
+    group: "Уголь",
+    title: "Экспорт угля из страны ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура экспорта каменного и бурого угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-hardcoal-export-by-partners",
+    group: "Уголь",
+    title: "Экспорт каменного угля из страны ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура экспорта каменного угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["HARDCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-browncoal-export-by-partners",
+    group: "Уголь",
+    title: "Экспорт бурого угля из страны ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура экспорта бурого угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-import-by-partners",
+    group: "Уголь",
+    title: "Импорт угля в страну ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура импорта каменного и бурого угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["HARDCOAL", "BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-hardcoal-import-by-partners",
+    group: "Уголь",
+    title: "Импорт каменного угля в страну ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура импорта каменного угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["HARDCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "coal-oecd-browncoal-import-by-partners",
+    group: "Уголь",
+    title: "Импорт бурого угля в страну ОЭСР по направлениям, (тыс. тонн)",
+    description: "Структура импорта бурого угля по партнёрам за последний доступный год.",
+    factTable: "coal.fact_coal_trade",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["BROWNCOAL"],
+      unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
   }
 ];
 

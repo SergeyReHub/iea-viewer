@@ -111,6 +111,12 @@ const oneDecimalGuideTableIds = new Set<string>([
   "coal-nonoecd-import",
   "coal-oecd-export",
   "coal-nonoecd-export",
+  "coal-oecd-export-by-partners",
+  "coal-oecd-hardcoal-export-by-partners",
+  "coal-oecd-browncoal-export-by-partners",
+  "coal-oecd-import-by-partners",
+  "coal-oecd-hardcoal-import-by-partners",
+  "coal-oecd-browncoal-import-by-partners",
   "gas-oecd-consumption-by-sectors"
 ]);
 

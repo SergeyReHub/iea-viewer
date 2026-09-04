@@ -1389,6 +1389,144 @@ GUIDE_TABLE_TEMPLATES: dict[str, dict[str, Any]] = {
         ],
         "country_scope": "non_oecd",
     },
+    "coal-oecd-export-by-partners": {
+        "domain": "coal",
+        "title": "Экспорт угля из страны ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "product_code": ["HARDCOAL", "BROWNCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["15"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": ["HARDCOAL", "BROWNCOAL"],
+        "country_scope": "oecd",
+    },
+    "coal-oecd-hardcoal-export-by-partners": {
+        "domain": "coal",
+        "title": "Экспорт каменного угля из страны ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "product_code": ["HARDCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["15"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "HARDCOAL",
+        "country_scope": "oecd",
+    },
+    "coal-oecd-browncoal-export-by-partners": {
+        "domain": "coal",
+        "title": "Экспорт бурого угля из страны ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["EXPORTS"],
+            "product_code": ["BROWNCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["15"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "BROWNCOAL",
+        "country_scope": "oecd",
+    },
+    "coal-oecd-import-by-partners": {
+        "domain": "coal",
+        "title": "Импорт угля в страну ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "product_code": ["HARDCOAL", "BROWNCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["16"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": ["HARDCOAL", "BROWNCOAL"],
+        "country_scope": "oecd",
+    },
+    "coal-oecd-hardcoal-import-by-partners": {
+        "domain": "coal",
+        "title": "Импорт каменного угля в страну ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "product_code": ["HARDCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["16"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "HARDCOAL",
+        "country_scope": "oecd",
+    },
+    "coal-oecd-browncoal-import-by-partners": {
+        "domain": "coal",
+        "title": "Импорт бурого угля в страну ОЭСР по направлениям, (тыс. тонн)",
+        "fact_table": "coal.fact_coal_trade",
+        "frequency_code": "A",
+        "row_dimension": "partner_code",
+        "base_filters": {
+            "flow_code": ["IMPORTS"],
+            "product_code": ["BROWNCOAL"],
+            "unit_code": ["KT"],
+            "source_id": ["16"],
+        },
+        "mode": "annual_share",
+        "period_from": "2024",
+        "annual_share_target": "latest_available",
+        "annual_share_year_label": "{year} г.",
+        "round_digits": 1,
+        "top_n_rows": 10,
+        "drop_empty_top_rows": True,
+        "annual_share_total_partner": "TOTAL",
+        "annual_share_total_product": "BROWNCOAL",
+        "country_scope": "oecd",
+    },
     "coal-trade-import-partners": {
         "domain": "coal",
         "title": "Импорт угля по партнёрам, (тыс. тонн)",
@@ -2860,16 +2998,24 @@ async def _fetch_total_partner_aggregate_values(
         query = f"""
             SELECT
                 period_key,
-                MAX(metric_value)::double precision AS metric_value
+                SUM(metric_value)::double precision AS metric_value
             FROM (
                 SELECT
-                    COALESCE(t.time_period::text, 'N/A') AS period_key,
-                    COALESCE(t.source_id::text, 'N/A') AS source_key,
-                    MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
-                FROM {fact_table} t
-                {where_sql}
-                GROUP BY period_key, source_key
-            ) source_rows
+                    period_key,
+                    product_key,
+                    MAX(metric_value)::double precision AS metric_value
+                FROM (
+                    SELECT
+                        COALESCE(t.time_period::text, 'N/A') AS period_key,
+                        COALESCE(t.product_code::text, 'N/A') AS product_key,
+                        COALESCE(t.source_id::text, 'N/A') AS source_key,
+                        MAX(COALESCE(t.value::numeric, 0))::double precision AS metric_value
+                    FROM {fact_table} t
+                    {where_sql}
+                    GROUP BY period_key, product_key, source_key
+                ) source_rows
+                GROUP BY period_key, product_key
+            ) product_rows
             GROUP BY period_key
         """
     else:
