@@ -11,6 +11,9 @@ variables:
   FRONTEND_RELEASE_IMAGE: $CI_REGISTRY_IMAGE/frontend:latest
   MODULE_NAME: "iea-viewer-v2"
   GIT_CLEAN_FLAGS: -ffdx -e deploy/.env -e deploy/storage/ -e deploy/storage/**
+  # Classic builder uses local Hub images without a metadata/token round-trip
+  # (BuildKit times out against docker.io from this runner).
+  DOCKER_BUILDKIT: "0"
 
 before_script:
   - echo $CI_JOB_TOKEN | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
@@ -20,7 +23,27 @@ build-backend:
   tags:
     - docker50
   script:
-    - docker build -t $BACKEND_IMAGE -f backend/Dockerfile.prod .
+    - |
+      ensure_hub_image() {
+        local image="$1"
+        if docker image inspect "$image" >/dev/null 2>&1; then
+          echo "Using local image $image"
+          return 0
+        fi
+        local n=0
+        while [ "$n" -lt 4 ]; do
+          n=$((n + 1))
+          echo "Pulling $image (attempt $n/4)"
+          if docker pull "$image"; then
+            return 0
+          fi
+          sleep $((n * 15))
+        done
+        echo "Failed to pull $image and no local copy"
+        return 1
+      }
+      ensure_hub_image python:3.12-slim
+      docker build -t "$BACKEND_IMAGE" -f backend/Dockerfile.prod .
     - docker push $BACKEND_IMAGE
 
 build-frontend:
@@ -28,7 +51,28 @@ build-frontend:
   tags:
     - docker50
   script:
-    - docker build -t $FRONTEND_IMAGE -f frontend/Dockerfile.prod frontend
+    - |
+      ensure_hub_image() {
+        local image="$1"
+        if docker image inspect "$image" >/dev/null 2>&1; then
+          echo "Using local image $image"
+          return 0
+        fi
+        local n=0
+        while [ "$n" -lt 4 ]; do
+          n=$((n + 1))
+          echo "Pulling $image (attempt $n/4)"
+          if docker pull "$image"; then
+            return 0
+          fi
+          sleep $((n * 15))
+        done
+        echo "Failed to pull $image and no local copy"
+        return 1
+      }
+      ensure_hub_image node:20-alpine
+      ensure_hub_image nginx:1.27-alpine
+      docker build -t "$FRONTEND_IMAGE" -f frontend/Dockerfile.prod frontend
     - docker push $FRONTEND_IMAGE
 
 release-images:
