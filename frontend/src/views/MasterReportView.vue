@@ -64,7 +64,7 @@ interface FilterPreset {
 
 interface GuideTableTemplate {
   id: string;
-  group: "Нефть" | "Газ";
+  group: "Нефть" | "Газ" | "Уголь" | "Электроэнергия";
   title: string;
   description: string;
   factTable: string;
@@ -620,6 +620,84 @@ const GUIDE_TABLE_TEMPLATES: GuideTableTemplate[] = [
       flow_code: ["IMPORTS"],
       product_code: ["BROWNCOAL"],
       unit_code: ["KT"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-oecd-production",
+    group: "Электроэнергия",
+    title: "Производство электроэнергии в стране ОЭСР, (млрд кВт·ч)",
+    description: "Годовое валовое производство электроэнергии в странах ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["GROSPROD"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-nonoecd-production",
+    group: "Электроэнергия",
+    title: "Производство электроэнергии в стране не-ОЭСР, (млрд кВт·ч)",
+    description: "Годовое валовое производство электроэнергии в странах не-ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["GROSPROD"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-oecd-import",
+    group: "Электроэнергия",
+    title: "Импорт электроэнергии в страну ОЭСР, (млрд кВт·ч)",
+    description: "Годовой импорт электроэнергии в странах ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-nonoecd-import",
+    group: "Электроэнергия",
+    title: "Импорт электроэнергии в страну не-ОЭСР, (млрд кВт·ч)",
+    description: "Годовой импорт электроэнергии в странах не-ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["IMPORTS"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-oecd-export",
+    group: "Электроэнергия",
+    title: "Экспорт электроэнергии из страны ОЭСР, (млрд кВт·ч)",
+    description: "Годовой экспорт электроэнергии из стран ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
+      frequency_code: ["A"]
+    }
+  },
+  {
+    id: "electricity-nonoecd-export",
+    group: "Электроэнергия",
+    title: "Экспорт электроэнергии из страны не-ОЭСР, (млрд кВт·ч)",
+    description: "Годовой экспорт электроэнергии из стран не-ОЭСР.",
+    factTable: "electricity.fact_electricity_balance",
+    selectedFilterValues: {
+      flow_code: ["EXPORTS"],
+      product_code: ["ELECTRICITY"],
+      unit_code: ["GWH"],
       frequency_code: ["A"]
     }
   }
