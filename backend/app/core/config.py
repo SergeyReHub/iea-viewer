@@ -4,13 +4,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "iea-viewer-v2-api"
     app_env: str = "dev"
-    api_port: int = 8010
+    api_port: int = 8015
 
-    pghost: str = "192.168.245.32"
-    pgport: int = 5432
-    pgdatabase: str = "iea_data"
-    pguser: str = "postgres"
-    pgpassword: str = "postgres"
+    pghost: str = "host.docker.internal"
+    pgport: int = 5442
+    pgdatabase: str = "parsers_eurostat"
+    pguser: str = "parsers"
+    pgpassword: str = "parsers"
     iea_db_url: str = ""
 
     sources_config: str = "config/sources.yaml"
