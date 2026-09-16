@@ -20,25 +20,38 @@ class SourceProfile:
     description: str
     schema_version: str | None = None
     domains: tuple[str, ...] = field(default_factory=tuple)
+    db_name: str | None = None
+
+    def default_database_name(self) -> str:
+        return ("iea_data" if self.id == "iea" else self.id) or "postgres"
 
     def connection_url(self) -> str | None:
         if self.status != "active":
             return None
+
         env_key = f"{self.id.upper()}_DB_URL"
         url = os.environ.get(env_key, "").strip()
         if url:
             return url
+
+        legacy_key = "IEA_DB_URL"
         if self.id == "iea":
-            url = os.environ.get("IEA_DB_URL", "").strip()
-            if url:
-                return url
-            host = os.environ.get("PGHOST", "localhost")
-            port = os.environ.get("PGPORT", "5432")
-            database = os.environ.get("PGDATABASE", "iea_data")
-            user = os.environ.get("PGUSER", "postgres")
-            password = os.environ.get("PGPASSWORD", "postgres")
-            return f"postgresql://{user}:{password}@{host}:{port}/{database}"
-        return None
+            legacy_url = os.environ.get(legacy_key, "").strip()
+            if legacy_url:
+                return legacy_url
+
+        source_db_name = (
+            os.environ.get(f"{self.id.upper()}_DB_NAME", "").strip()
+            or (self.db_name or "").strip()
+            or os.environ.get("PGDATABASE", "").strip()
+            or self.default_database_name()
+        )
+
+        host = os.environ.get("PGHOST", "localhost")
+        port = os.environ.get("PGPORT", "5432")
+        user = os.environ.get("PGUSER", "postgres")
+        password = os.environ.get("PGPASSWORD", "postgres")
+        return f"postgresql://{user}:{password}@{host}:{port}/{source_db_name}"
 
 
 class SourceRegistry:
@@ -62,6 +75,7 @@ class SourceRegistry:
                 description=str(item.get("description", "")).strip(),
                 schema_version=item.get("schema_version"),
                 domains=tuple(item.get("domains") or []),
+                db_name=(str(item.get("db_name", "")).strip() or None),
             )
             profiles[profile.id] = profile
         return cls(profiles)

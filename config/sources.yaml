@@ -1,10 +1,13 @@
 # Каталог источников данных для iea-viewer-v2
-# connection задаётся через env: {SOURCE_ID}_DB_URL или IEA_DB_URL для iea
+# Для активного источника можно задать только db_name; остальное остается прежним.
+# Пример: PGHOST/PGPORT/PGUSER/PGPASSWORD задаются один раз, а база меняется по source_id.
+# Дополнительно можно переопределить через env: {SOURCE_ID}_DB_URL или {SOURCE_ID}_DB_NAME.
 
 sources:
   - id: iea
     name: IEA
     status: active
+    db_name: parsers_iea
     adapter: iea_etl
     homepage_url: https://www.iea.org/data-and-statistics
     schema_version: "2026-06"
@@ -20,7 +23,8 @@ sources:
 
   - id: eurostat
     name: Eurostat
-    status: planned
+    status: active
+    db_name: parsers_eurostat
     adapter: eurostat
     homepage_url: https://ec.europa.eu/eurostat/data/database
     schema_version: null
@@ -29,7 +33,8 @@ sources:
 
   - id: jodi
     name: JODI
-    status: planned
+    status: active
+    db_name: parsers_jodi
     adapter: jodi
     homepage_url: http://www.jodidb.org/ReportFolders/reportFolders.aspx?sCS_referer=&sCS_ChosenLang=en
     schema_version: null
@@ -38,7 +43,8 @@ sources:
 
   - id: eia
     name: EIA
-    status: planned
+    status: active
+    db_name: parsers_eia
     adapter: eia
     homepage_url: https://www.eia.gov/international/data/world
     schema_version: null
@@ -74,7 +80,18 @@ sources:
 
   - id: un_comtrade
     name: UN Comtrade
-    status: planned
+    status: active
+    db_name: parsers_comtrade
+    adapter: un_comtrade
+    homepage_url: https://comtradeplus.un.org/TradeFlow
+    schema_version: null
+    domains: []
+    description: UN Comtrade Plus — потоки международной торговли.
+
+  - id: energy_institute
+    name: Energy Institute
+    status: active
+    db_name: parsers_comtrade
     adapter: un_comtrade
     homepage_url: https://comtradeplus.un.org/TradeFlow
     schema_version: null
