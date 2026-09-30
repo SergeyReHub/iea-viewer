@@ -62,7 +62,8 @@ sources:
 
   - id: energy_institute
     name: Energy Institute
-    status: planned
+    db_name: parsers_ei
+    status: active
     adapter: energy_institute
     homepage_url: https://www.energyinst.org/statistical-review/resources-and-data-downloads
     schema_version: null
@@ -88,12 +89,3 @@ sources:
     domains: []
     description: UN Comtrade Plus — потоки международной торговли.
 
-  - id: energy_institute
-    name: Energy Institute
-    status: active
-    db_name: parsers_comtrade
-    adapter: un_comtrade
-    homepage_url: https://comtradeplus.un.org/TradeFlow
-    schema_version: null
-    domains: []
-    description: UN Comtrade Plus — потоки международной торговли.
